@@ -82,12 +82,13 @@ def github_login():
     client_id = os.environ.get("GITHUB_CLIENT_ID")
     redirect_uri = os.environ.get("REDIRECT_URI")
     
+    # Ensure redirect_uri exactly matches what is in GitHub App settings
+    # GitHub is very strict about trailing slashes and http vs https
     if not client_id or not redirect_uri:
-        # Fallback to hardcoded values for immediate fix if env vars are slow to propagate
         client_id = client_id or "Ov23lipwgA5vPc0x7HbV"
         redirect_uri = redirect_uri or "https://6a51dd24-d485-424b-bd21-bc21ebd16c8c-00-ld39fl3q8wm5.pike.replit.dev/api/github/callback"
         
-    url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=repo,user"
+    url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri.rstrip('/')}&scope=repo,user"
     return jsonify({"url": url})
 
 @app.route('/api/github/callback')
