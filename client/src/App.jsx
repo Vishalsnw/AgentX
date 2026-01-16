@@ -63,23 +63,48 @@ export default function App() {
     if (data.stderr) setLogs(prev => [...prev, `ERR: ${data.stderr}`]);
   };
 
-  const [repoPath, setRepoPath] = useState(null);
+  const [repos, setRepos] = useState([]);
+  const [showRepoList, setShowRepoList] = useState(false);
 
-  useEffect(() => {
-    const handleMessage = (event) => {
-      if (event.data.type === 'github-token') {
-        const token = event.data.token;
-        localStorage.setItem('github_token', token);
-        fetch('/api/git_auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token })
-        }).then(res => res.json()).then(data => alert(data.message));
+  const fetchRepos = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/github/repos');
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setRepos(data);
+        setShowRepoList(true);
+      } else {
+        alert(data.error || "Failed to fetch repos");
       }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRepoSelect = async (repoUrl) => {
+    setShowRepoList(false);
+    setLogs(prev => [...prev, `Cloning ${repoUrl}...`]);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/git_clone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_url: repoUrl })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setLogs(prev => [...prev, `Success: ${data.message}`]);
+        setRepoPath(data.path);
+      } else {
+        setLogs(prev => [...prev, `Error: ${data.message || data.error}`]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const authenticateGithub = async () => {
     const token = prompt("Enter your GitHub Personal Access Token (PAT):\n1. Go to GitHub Settings > Developer Settings > Tokens (classic)\n2. Generate new token with 'repo' scope\n3. Paste it here.");
@@ -154,7 +179,7 @@ export default function App() {
           <button onClick={authenticateGithub} title="Auth GitHub" className="p-2 hover:bg-gray-700 rounded transition text-blue-400">
             <Github size={20} />
           </button>
-          <button onClick={cloneRepo} title="Clone Repo" className="p-2 hover:bg-gray-700 rounded transition">
+          <button onClick={fetchRepos} title="List Repos" className="p-2 hover:bg-gray-700 rounded transition text-purple-400">
             <FileCode size={20} />
           </button>
           <button onClick={() => gitOp('pull')} title="Pull Changes" className="p-2 hover:bg-gray-700 rounded transition text-yellow-400">
@@ -169,7 +194,27 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 flex overflow-hidden">
+      <main className="flex-1 flex overflow-hidden relative">
+        {showRepoList && (
+          <div className="absolute inset-0 z-50 bg-gray-900 bg-opacity-95 p-8 overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Select Repository</h2>
+              <button onClick={() => setShowRepoList(false)} className="px-4 py-2 bg-red-600 rounded hover:bg-red-500">Close</button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {repos.map(repo => (
+                <button
+                  key={repo.name}
+                  onClick={() => handleRepoSelect(repo.url)}
+                  className="p-4 bg-gray-800 rounded-lg hover:bg-gray-700 text-left border border-gray-700 transition"
+                >
+                  <div className="font-bold truncate">{repo.name}</div>
+                  <div className="text-xs text-gray-500 truncate">{repo.url}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex-1 flex flex-col p-4 overflow-y-auto space-y-4">
           {messages.map((m, i) => (
             <div key={i} className={`max-w-[80%] p-3 rounded-lg ${m.role === 'user' ? 'ml-auto bg-blue-600' : 'bg-gray-800'}`}>

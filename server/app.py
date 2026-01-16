@@ -116,6 +116,27 @@ def github_callback():
         """
     return "Authentication failed", 400
 
+@app.route('/api/github/repos', methods=['GET'])
+def get_github_repos():
+    token = os.environ.get("GITHUB_TOKEN_SECRET") or os.environ.get("GITHUB_TOKEN")
+    if not token:
+        return jsonify({"error": "GitHub not authenticated"}), 401
+    
+    try:
+        res = requests.get(
+            "https://api.github.com/user/repos?sort=updated&per_page=100",
+            headers={
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.v3+json"
+            }
+        )
+        if res.status_code == 200:
+            repos = [{"name": r["full_name"], "url": r["html_url"]} for r in res.json()]
+            return jsonify(repos)
+        else:
+            return jsonify({"error": res.json().get('message', 'Failed to fetch repos')}), res.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 @app.route('/api/git_clone', methods=['POST'])
 def git_clone():
     data = request.json
@@ -131,6 +152,8 @@ def git_clone():
     token = os.environ.get("GITHUB_TOKEN_SECRET")
     
     # If not in env, check if it was passed via the git_auth endpoint (which sets it in the session/process)
+    if not token:
+        token = os.environ.get("GITHUB_TOKEN")
     if not token:
         token = os.environ.get("GITHUB_TOKEN")
 
