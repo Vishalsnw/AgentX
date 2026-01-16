@@ -87,7 +87,7 @@ def github_login():
         client_id = client_id or "Ov23lipwgA5vPc0x7HbV"
         redirect_uri = redirect_uri or "https://agent-x-tawny.vercel.app/api/github/callback"
         
-    url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri.rstrip('/')}&scope=repo,user"
+    url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=repo,user"
     return jsonify({"url": url})
 
 @app.route('/api/github/callback')
