@@ -71,5 +71,31 @@ def write_files():
             results.append({"path": path, "status": "error", "message": str(e)})
     return jsonify(results)
 
+@app.route('/api/git_clone', methods=['POST'])
+def git_clone():
+    data = request.json
+    repo_url = data.get('repo_url')
+    if not repo_url:
+        return jsonify({"error": "No repository URL provided"}), 400
+    
+    # Simple validation to ensure it's a github URL
+    if "github.com" not in repo_url:
+        return jsonify({"error": "Only GitHub URLs are supported"}), 400
+
+    try:
+        # Extract folder name from URL
+        folder_name = repo_url.split('/')[-1].replace('.git', '')
+        # Clone into a specific directory to avoid overwriting the replica itself
+        target_path = os.path.join(os.getcwd(), folder_name)
+        
+        result = subprocess.run(["git", "clone", repo_url, target_path], capture_output=True, text=True, timeout=60)
+        
+        if result.returncode == 0:
+            return jsonify({"status": "success", "message": f"Cloned into {folder_name}", "path": target_path})
+        else:
+            return jsonify({"status": "error", "message": result.stderr}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

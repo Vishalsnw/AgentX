@@ -63,6 +63,30 @@ export default function App() {
     if (data.stderr) setLogs(prev => [...prev, `ERR: ${data.stderr}`]);
   };
 
+  const cloneRepo = async () => {
+    const url = prompt("Enter GitHub Repository URL (e.g., https://github.com/user/repo):");
+    if (!url) return;
+    setLogs(prev => [...prev, `Cloning ${url}...`]);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/git_clone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repo_url: url })
+      });
+      const data = await res.json();
+      if (data.status === 'success') {
+        setLogs(prev => [...prev, `Success: ${data.message}`]);
+      } else {
+        setLogs(prev => [...prev, `Error: ${data.message || data.error}`]);
+      }
+    } catch (error) {
+      setLogs(prev => [...prev, `Error: ${error.message}`]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white font-sans">
       <header className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800">
@@ -70,7 +94,7 @@ export default function App() {
           <Terminal size={24} /> Replit Replica
         </h1>
         <div className="flex gap-2">
-          <button onClick={() => alert('GitHub integration: Use prompt to clone')} className="p-2 hover:bg-gray-700 rounded transition">
+          <button onClick={cloneRepo} title="Clone GitHub Repo" className="p-2 hover:bg-gray-700 rounded transition">
             <Github size={20} />
           </button>
           <button onClick={runCode} className="p-2 hover:bg-gray-700 rounded transition text-green-400">
