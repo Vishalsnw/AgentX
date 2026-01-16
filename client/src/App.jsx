@@ -70,16 +70,26 @@ export default function App() {
     setLoading(true);
     try {
       const token = localStorage.getItem('github_token');
-      const res = await fetch(`/api/github/repos?token=${encodeURIComponent(token || '')}`);
+      if (!token) {
+        alert("Please authenticate with GitHub first (click the GitHub icon).");
+        setLoading(false);
+        return;
+      }
+      
+      const res = await fetch(`/api/github/repos?token=${encodeURIComponent(token.trim())}`, {
+        headers: {
+          'Authorization': `token ${token.trim()}`
+        }
+      });
       const data = await res.json();
       if (Array.isArray(data)) {
         setRepos(data);
         setShowRepoList(true);
       } else {
-        alert(data.error || "Failed to fetch repos");
+        alert("GitHub says: " + (data.error || "Bad credentials. Please ensure your token has 'repo' permissions."));
       }
     } catch (error) {
-      alert("Error: " + error.message);
+      alert("System Error: " + error.message);
     } finally {
       setLoading(false);
     }
