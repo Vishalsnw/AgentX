@@ -126,7 +126,7 @@ def get_github_repos():
         res = requests.get(
             "https://api.github.com/user/repos?sort=updated&per_page=100",
             headers={
-                "Authorization": f"token {token}",
+                "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github.v3+json"
             }
         )
