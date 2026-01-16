@@ -83,10 +83,9 @@ def github_login():
     redirect_uri = os.environ.get("REDIRECT_URI")
     
     # Ensure redirect_uri exactly matches what is in GitHub App settings
-    # GitHub is very strict about trailing slashes and http vs https
     if not client_id or not redirect_uri:
         client_id = client_id or "Ov23lipwgA5vPc0x7HbV"
-        redirect_uri = redirect_uri or "https://6a51dd24-d485-424b-bd21-bc21ebd16c8c-00-ld39fl3q8wm5.pike.replit.dev/api/github/callback"
+        redirect_uri = redirect_uri or "https://agent-x-tawny.vercel.app/api/github/callback"
         
     url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri.rstrip('/')}&scope=repo,user"
     return jsonify({"url": url})
@@ -100,7 +99,7 @@ def github_callback():
     # Force re-read credentials for token exchange
     client_id = os.environ.get("GITHUB_CLIENT_ID") or "Ov23lipwgA5vPc0x7HbV"
     client_secret = os.environ.get("GITHUB_CLIENT_SECRET") or "9d890e753b9806d6cc6269016de5a9dc35684a3f"
-    redirect_uri = os.environ.get("REDIRECT_URI") or "https://6a51dd24-d485-424b-bd21-bc21ebd16c8c-00-ld39fl3q8wm5.pike.replit.dev/api/github/callback"
+    redirect_uri = os.environ.get("REDIRECT_URI") or "https://agent-x-tawny.vercel.app/api/github/callback"
     
     # Exchange code for token
     res = requests.post(
