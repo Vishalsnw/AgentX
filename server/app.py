@@ -10,7 +10,7 @@ CORS(app)
 
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-68be7759cb7746dbb0b90edba8e78fe0")
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-GITHUB_TOKEN = "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"
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN_SECRET", "sk-placeholder")
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
