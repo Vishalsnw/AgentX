@@ -65,16 +65,26 @@ export default function App() {
 
   const [repoPath, setRepoPath] = useState(null);
 
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data.type === 'github-token') {
+        const token = event.data.token;
+        localStorage.setItem('github_token', token);
+        fetch('/api/git_auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        }).then(res => res.json()).then(data => alert(data.message));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const authenticateGithub = async () => {
-    const token = prompt("Enter your GitHub Personal Access Token (PAT):");
-    if (!token) return;
-    const res = await fetch('/api/git_auth', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token })
-    });
+    const res = await fetch('/api/auth/github');
     const data = await res.json();
-    alert(data.message || data.error);
+    window.open(data.url, 'GitHub Auth', 'width=600,height=700');
   };
 
   const gitOp = async (op) => {
