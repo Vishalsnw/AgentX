@@ -82,9 +82,23 @@ export default function App() {
   }, []);
 
   const authenticateGithub = async () => {
-    const res = await fetch('/api/auth/github');
-    const data = await res.json();
-    window.open(data.url, 'GitHub Auth', 'width=600,height=700');
+    const token = prompt("Enter your GitHub Personal Access Token (PAT):\n1. Go to GitHub Settings > Developer Settings > Tokens (classic)\n2. Generate new token with 'repo' scope\n3. Paste it here.");
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/git_auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      });
+      const data = await res.json();
+      alert(data.message || data.error);
+      if (data.status === 'success') {
+        localStorage.setItem('github_token', token);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const gitOp = async (op) => {
