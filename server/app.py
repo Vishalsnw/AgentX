@@ -74,13 +74,14 @@ def write_files():
 
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
-REDIRECT_URI = os.environ.get("REDIRECT_URI") # e.g., https://your-app.replit.app/api/github/callback
+REDIRECT_URI = os.environ.get("REDIRECT_URI")
 
 @app.route('/api/auth/github')
 def github_login():
-    return jsonify({
-        "url": f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=repo,user"
-    })
+    if not GITHUB_CLIENT_ID or not REDIRECT_URI:
+        return jsonify({"error": "GitHub OAuth not configured"}), 500
+    url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=repo,user"
+    return jsonify({"url": url})
 
 @app.route('/api/github/callback')
 def github_callback():
@@ -103,18 +104,21 @@ def github_callback():
     access_token = token_data.get('access_token')
     
     if access_token:
-        # In a real app, you'd store this in a session or DB
-        # For this replica, we'll return it to the frontend to store in localStorage
+        # Pass token back to frontend via postMessage
         return f"""
         <html>
             <script>
-                window.opener.postMessage({{ type: 'github-token', token: '{access_token}' }}, '*');
-                window.close();
+                if (window.opener) {{
+                    window.opener.postMessage({{ type: 'github-token', token: '{access_token}' }}, '*');
+                    window.close();
+                }} else {{
+                    document.body.innerHTML = "Login successful! You can close this window and return to the app.";
+                }}
             </script>
-            <body>Authentication successful! You can close this window.</body>
+            <body>Authentication successful! Redirecting...</body>
         </html>
         """
-    return "Authentication failed", 400
+    return f"Authentication failed: {token_data.get('error_description', 'Unknown error')}", 400
 
 @app.route('/api/github/repos', methods=['GET'])
 def get_github_repos():

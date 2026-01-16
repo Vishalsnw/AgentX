@@ -118,24 +118,30 @@ export default function App() {
     }
   };
 
-  const authenticateGithub = async () => {
-    const token = prompt("Enter your GitHub Personal Access Token (PAT):\n1. Go to GitHub Settings > Developer Settings > Tokens (classic)\n2. Generate new token with 'repo' scope\n3. Paste it here.");
-    if (!token) return;
-    setLoading(true);
-    try {
-      const res = await fetch('/api/git_auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-      const data = await res.json();
-      console.log("Auth response:", data); // Debug log
-      if (data.status === 'success') {
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data.type === 'github-token') {
+        const token = event.data.token;
         localStorage.setItem('github_token', token);
-        alert("GitHub Authenticated!");
-      } else {
-        alert("Auth Error: " + data.error);
+        alert("GitHub Authenticated via OAuth!");
       }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const authenticateGithub = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/auth/github');
+      const data = await res.json();
+      if (data.url) {
+        window.open(data.url, 'GitHub Login', 'width=600,height=700');
+      } else {
+        alert("OAuth configuration missing on server.");
+      }
+    } catch (error) {
+      alert("Auth Error: " + error.message);
     } finally {
       setLoading(false);
     }

@@ -36,3 +36,10 @@ externalPort = 80
 [deployment]
 deploymentTarget = "autoscale"
 run = ["python", "server/app.py"]
+
+[userenv]
+
+[userenv.shared]
+GITHUB_CLIENT_SECRET = "9d890e753b9806d6cc6269016de5a9dc35684a3f"
+GITHUB_CLIENT_ID = "Ov23lipwgA5vPc0x7HbV"
+REDIRECT_URI = "https://6a51dd24-d485-424b-bd21-bc21ebd16c8c-00-ld39fl3q8wm5.pike.replit.dev/api/github/callback"
