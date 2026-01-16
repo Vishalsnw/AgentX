@@ -200,8 +200,14 @@ def git_clone():
         if os.path.exists(target_path):
              return jsonify({"status": "success", "message": f"Folder {folder_name} already exists", "path": target_path})
 
-        # Use shell=True for git clone to let the system resolve the path
-        result = subprocess.run(f"git clone {repo_url} {target_path}", shell=True, capture_output=True, text=True, timeout=60)
+        # Use the absolute path directly discovered via shell
+        git_binary = "/nix/store/smaydcvrcaz906653vbnps70y9j7w658-git-2.49.0/bin/git"
+        # Check if the binary exists at that specific path before running
+        if not os.path.exists(git_binary):
+            # Fallback to just "git" if the nix path changed
+            git_binary = "git"
+            
+        result = subprocess.run([git_binary, "clone", repo_url, target_path], capture_output=True, text=True, timeout=60)
         
         if result.returncode == 0:
             return jsonify({"status": "success", "message": f"Cloned into {folder_name}", "path": target_path})
@@ -230,29 +236,33 @@ def git_operation():
         return jsonify({"error": "Repository path does not exist"}), 400
 
     try:
+        git_binary = "/nix/store/smaydcvrcaz906653vbnps70y9j7w658-git-2.49.0/bin/git"
+        if not os.path.exists(git_binary):
+            git_binary = "git"
+
         if op == 'pull':
-            result = subprocess.run(f"git -C {repo_path} pull", shell=True, capture_output=True, text=True)
+            result = subprocess.run([git_binary, "-C", repo_path, "pull"], capture_output=True, text=True)
         elif op == 'push':
             # Configure user identity if not set
-            subprocess.run(f"git -C {repo_path} config user.email agent@replica.com", shell=True, capture_output=True)
-            subprocess.run(f"git -C {repo_path} config user.name 'Agent Replica'", shell=True, capture_output=True)
+            subprocess.run([git_binary, "-C", repo_path, "config", "user.email", "agent@replica.com"], capture_output=True)
+            subprocess.run([git_binary, "-C", repo_path, "config", "user.name", "Agent Replica"], capture_output=True)
             
             # Ensure the remote URL uses the token for authentication
-            remotes = subprocess.run(f"git -C {repo_path} remote -v", shell=True, capture_output=True, text=True).stdout
+            remotes = subprocess.run([git_binary, "-C", repo_path, "remote", "-v"], capture_output=True, text=True).stdout
             
             token = os.environ.get("GITHUB_TOKEN_SECRET") or os.environ.get("GITHUB_TOKEN")
             
             if token and "github.com" in remotes and token not in remotes:
                 # Get the current remote URL (usually 'origin')
                 remote_name = "origin"
-                current_url = subprocess.run(f"git -C {repo_path} remote get-url {remote_name}", shell=True, capture_output=True, text=True).stdout.strip()
+                current_url = subprocess.run([git_binary, "-C", repo_path, "remote", "get-url", remote_name], capture_output=True, text=True).stdout.strip()
                 if "https://github.com/" in current_url:
                     new_url = current_url.replace("https://github.com/", f"https://{token}@github.com/")
-                    subprocess.run(f"git -C {repo_path} remote set-url {remote_name} {new_url}", shell=True, capture_output=True)
+                    subprocess.run([git_binary, "-C", repo_path, "remote", "set-url", remote_name, new_url], capture_output=True)
 
-            subprocess.run(f"git -C {repo_path} add .", shell=True, capture_output=True)
-            subprocess.run(f"git -C {repo_path} commit -m '{message}'", shell=True, capture_output=True)
-            result = subprocess.run(f"git -C {repo_path} push", shell=True, capture_output=True, text=True)
+            subprocess.run([git_binary, "-C", repo_path, "add", "."], capture_output=True)
+            subprocess.run([git_binary, "-C", repo_path, "commit", "-m", message], capture_output=True)
+            result = subprocess.run([git_binary, "-C", repo_path, "push"], capture_output=True, text=True)
         else:
             return jsonify({"error": "Invalid operation"}), 400
 
