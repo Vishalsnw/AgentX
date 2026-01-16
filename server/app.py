@@ -127,7 +127,13 @@ def git_clone():
     if "github.com" not in repo_url:
         return jsonify({"error": "Only GitHub URLs are supported"}), 400
 
-    token = os.environ.get("GITHUB_TOKEN", GITHUB_TOKEN)
+    # First check if we have a secret in env, then fall back to the provided token (if any)
+    token = os.environ.get("GITHUB_TOKEN_SECRET")
+    
+    # If not in env, check if it was passed via the git_auth endpoint (which sets it in the session/process)
+    if not token:
+        token = os.environ.get("GITHUB_TOKEN")
+
     if token:
         # Construct authenticated URL if token exists
         repo_url = repo_url.replace("https://github.com/", f"https://{token}@github.com/")
@@ -150,6 +156,15 @@ def git_clone():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/git_auth', methods=['POST'])
+def git_auth():
+    data = request.json
+    token = data.get('token')
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    os.environ["GITHUB_TOKEN"] = token
+    return jsonify({"status": "success", "message": "GitHub authenticated locally"})
+
 @app.route('/api/git_operation', methods=['POST'])
 def git_operation():
     data = request.json
@@ -170,12 +185,15 @@ def git_operation():
             
             # Ensure the remote URL uses the token for authentication
             remotes = subprocess.run(["git", "-C", repo_path, "remote", "-v"], capture_output=True, text=True).stdout
-            if GITHUB_TOKEN and "github.com" in remotes and GITHUB_TOKEN not in remotes:
+            
+            token = os.environ.get("GITHUB_TOKEN_SECRET") or os.environ.get("GITHUB_TOKEN")
+            
+            if token and "github.com" in remotes and token not in remotes:
                 # Get the current remote URL (usually 'origin')
                 remote_name = "origin"
                 current_url = subprocess.run(["git", "-C", repo_path, "remote", "get-url", remote_name], capture_output=True, text=True).stdout.strip()
                 if "https://github.com/" in current_url:
-                    new_url = current_url.replace("https://github.com/", f"https://{GITHUB_TOKEN}@github.com/")
+                    new_url = current_url.replace("https://github.com/", f"https://{token}@github.com/")
                     subprocess.run(["git", "-C", repo_path, "remote", "set-url", remote_name, new_url], capture_output=True)
 
             subprocess.run(["git", "-C", repo_path, "add", "."], capture_output=True)
