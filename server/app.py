@@ -120,38 +120,23 @@ def github_callback():
 def get_github_repos():
     token = request.args.get('token')
     if not token:
-        # Check Authorization header as well
-        auth_header = request.headers.get('Authorization')
-        if auth_header:
-            if auth_header.startswith('Bearer '):
-                token = auth_header[7:]
-            elif auth_header.startswith('token '):
-                token = auth_header[6:]
-            else:
-                token = auth_header
-    
-    if not token:
         token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN_SECRET")
         
     if not token:
         return jsonify({"error": "GitHub not authenticated"}), 401
     
-    # Trim whitespace which often causes 'bad credentials'
     token = token.strip()
     
     try:
-        # Log for debugging (sanitized)
-        print(f"Attempting GitHub API call with token starting with: {token[:4]}...")
-        
-        # We will try the most standard way first
+        # Standard PAT format
         headers = {
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {token}"
         }
         res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", headers=headers)
         
-        if res.status_code != 200:
-            print(f"First attempt failed ({res.status_code}). Trying Bearer...")
+        # If that fails, try modern Bearer format
+        if res.status_code == 401:
             headers["Authorization"] = f"Bearer {token}"
             res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", headers=headers)
 
@@ -159,10 +144,14 @@ def get_github_repos():
             repos = [{"name": r["full_name"], "url": r["html_url"]} for r in res.json()]
             return jsonify(repos)
         else:
-            print(f"GitHub Error: {res.status_code} - {res.text}")
-            return jsonify({"error": f"GitHub API Error ({res.status_code}): {res.json().get('message', 'Unknown error')}"}), res.status_code
+            # Fallback: check if the user is using the token as a username/password (old git style)
+            res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", auth=(token, ''))
+            if res.status_code == 200:
+                repos = [{"name": r["full_name"], "url": r["html_url"]} for r in res.json()]
+                return jsonify(repos)
+                
+            return jsonify({"error": f"GitHub API Error ({res.status_code}): {res.json().get('message', 'Check if your token is valid and has repo scope.')}"}), res.status_code
     except Exception as e:
-        print(f"Internal Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 @app.route('/api/git_clone', methods=['POST'])
 def git_clone():
