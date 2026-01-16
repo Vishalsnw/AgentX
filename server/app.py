@@ -71,27 +71,39 @@ def write_files():
             results.append({"path": path, "status": "error", "message": str(e)})
     return jsonify(results)
 
-@app.route('/api/git_clone', methods=['POST'])
-def git_clone():
+@app.route('/api/git_auth', methods=['POST'])
+def git_auth():
     data = request.json
-    repo_url = data.get('repo_url')
-    if not repo_url:
-        return jsonify({"error": "No repository URL provided"}), 400
+    token = data.get('token')
+    if not token:
+        return jsonify({"error": "Token is required"}), 400
+    os.environ["GITHUB_TOKEN"] = token
+    # Configure git to use the token
+    subprocess.run(["git", "config", "--global", "url.https://{}.@github.com/".format(token), "insteadOf", "https://github.com/"])
+    return jsonify({"status": "success", "message": "GitHub authenticated"})
+
+@app.route('/api/git_operation', methods=['POST'])
+def git_operation():
+    data = request.json
+    op = data.get('operation') # 'pull' or 'push'
+    repo_path = data.get('path')
+    message = data.get('message', 'Update from Agent Replica')
     
-    # Simple validation to ensure it's a github URL
-    if "github.com" not in repo_url:
-        return jsonify({"error": "Only GitHub URLs are supported"}), 400
+    if not os.path.exists(repo_path):
+        return jsonify({"error": "Repository path does not exist"}), 400
 
     try:
-        # Extract folder name from URL
-        folder_name = repo_url.split('/')[-1].replace('.git', '')
-        # Clone into a specific directory to avoid overwriting the replica itself
-        target_path = os.path.join(os.getcwd(), folder_name)
-        
-        result = subprocess.run(["git", "clone", repo_url, target_path], capture_output=True, text=True, timeout=60)
-        
+        if op == 'pull':
+            result = subprocess.run(["git", "-C", repo_path, "pull"], capture_output=True, text=True)
+        elif op == 'push':
+            subprocess.run(["git", "-C", repo_path, "add", "."], capture_output=True)
+            subprocess.run(["git", "-C", repo_path, "commit", "-m", message], capture_output=True)
+            result = subprocess.run(["git", "-C", repo_path, "push"], capture_output=True, text=True)
+        else:
+            return jsonify({"error": "Invalid operation"}), 400
+
         if result.returncode == 0:
-            return jsonify({"status": "success", "message": f"Cloned into {folder_name}", "path": target_path})
+            return jsonify({"status": "success", "output": result.stdout})
         else:
             return jsonify({"status": "error", "message": result.stderr}), 500
     except Exception as e:

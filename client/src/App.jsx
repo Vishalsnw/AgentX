@@ -63,8 +63,39 @@ export default function App() {
     if (data.stderr) setLogs(prev => [...prev, `ERR: ${data.stderr}`]);
   };
 
+  const [repoPath, setRepoPath] = useState(null);
+
+  const authenticateGithub = async () => {
+    const token = prompt("Enter your GitHub Personal Access Token (PAT):");
+    if (!token) return;
+    const res = await fetch('/api/git_auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    const data = await res.json();
+    alert(data.message || data.error);
+  };
+
+  const gitOp = async (op) => {
+    if (!repoPath) return alert("Clone a repo first!");
+    const message = op === 'push' ? prompt("Commit message:") : null;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/git_operation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operation: op, path: repoPath, message })
+      });
+      const data = await res.json();
+      setLogs(prev => [...prev, data.status === 'success' ? `${op} successful` : `Error: ${data.message}`]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const cloneRepo = async () => {
-    const url = prompt("Enter GitHub Repository URL (e.g., https://github.com/user/repo):");
+    const url = prompt("Enter GitHub Repository URL:");
     if (!url) return;
     setLogs(prev => [...prev, `Cloning ${url}...`]);
     setLoading(true);
@@ -77,11 +108,10 @@ export default function App() {
       const data = await res.json();
       if (data.status === 'success') {
         setLogs(prev => [...prev, `Success: ${data.message}`]);
+        setRepoPath(data.path);
       } else {
         setLogs(prev => [...prev, `Error: ${data.message || data.error}`]);
       }
-    } catch (error) {
-      setLogs(prev => [...prev, `Error: ${error.message}`]);
     } finally {
       setLoading(false);
     }
@@ -94,8 +124,17 @@ export default function App() {
           <Terminal size={24} /> Replit Replica
         </h1>
         <div className="flex gap-2">
-          <button onClick={cloneRepo} title="Clone GitHub Repo" className="p-2 hover:bg-gray-700 rounded transition">
+          <button onClick={authenticateGithub} title="Auth GitHub" className="p-2 hover:bg-gray-700 rounded transition text-blue-400">
             <Github size={20} />
+          </button>
+          <button onClick={cloneRepo} title="Clone Repo" className="p-2 hover:bg-gray-700 rounded transition">
+            <FileCode size={20} />
+          </button>
+          <button onClick={() => gitOp('pull')} title="Pull Changes" className="p-2 hover:bg-gray-700 rounded transition text-yellow-400">
+            <Terminal size={20} />
+          </button>
+          <button onClick={() => gitOp('push')} title="Push Changes" className="p-2 hover:bg-gray-700 rounded transition text-orange-400">
+            <Send size={20} />
           </button>
           <button onClick={runCode} className="p-2 hover:bg-gray-700 rounded transition text-green-400">
             <Play size={20} />
