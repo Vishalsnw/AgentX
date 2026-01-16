@@ -156,12 +156,12 @@ def git_clone():
     if "github.com" not in repo_url:
         return jsonify({"error": "Only GitHub URLs are supported"}), 400
 
-    # First check if we have a secret in env, then fall back to the provided token (if any)
-    token = os.environ.get("GITHUB_TOKEN_SECRET")
+    # Prioritize locally provided token from git_auth endpoint
+    token = os.environ.get("GITHUB_TOKEN")
     
-    # If not in env, check if it was passed via the git_auth endpoint (which sets it in the session/process)
+    # Fallback to secret in env
     if not token:
-        token = os.environ.get("GITHUB_TOKEN")
+        token = os.environ.get("GITHUB_TOKEN_SECRET")
     if not token:
         token = os.environ.get("GITHUB_TOKEN")
 

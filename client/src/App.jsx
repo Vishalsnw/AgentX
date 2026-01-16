@@ -117,9 +117,12 @@ export default function App() {
         body: JSON.stringify({ token })
       });
       const data = await res.json();
-      alert(data.message || data.error);
+      console.log("Auth response:", data); // Debug log
       if (data.status === 'success') {
         localStorage.setItem('github_token', token);
+        alert("GitHub Authenticated!");
+      } else {
+        alert("Auth Error: " + data.error);
       }
     } finally {
       setLoading(false);
