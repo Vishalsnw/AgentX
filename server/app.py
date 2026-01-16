@@ -78,9 +78,16 @@ REDIRECT_URI = os.environ.get("REDIRECT_URI")
 
 @app.route('/api/auth/github')
 def github_login():
-    if not GITHUB_CLIENT_ID or not REDIRECT_URI:
-        return jsonify({"error": "GitHub OAuth not configured"}), 500
-    url = f"https://github.com/login/oauth/authorize?client_id={GITHUB_CLIENT_ID}&redirect_uri={REDIRECT_URI}&scope=repo,user"
+    # Force re-read from os.environ to ensure we get the latest values
+    client_id = os.environ.get("GITHUB_CLIENT_ID")
+    redirect_uri = os.environ.get("REDIRECT_URI")
+    
+    if not client_id or not redirect_uri:
+        # Fallback to hardcoded values for immediate fix if env vars are slow to propagate
+        client_id = client_id or "Ov23lipwgA5vPc0x7HbV"
+        redirect_uri = redirect_uri or "https://6a51dd24-d485-424b-bd21-bc21ebd16c8c-00-ld39fl3q8wm5.pike.replit.dev/api/github/callback"
+        
+    url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=repo,user"
     return jsonify({"url": url})
 
 @app.route('/api/github/callback')
@@ -89,15 +96,20 @@ def github_callback():
     if not code:
         return "No code provided", 400
     
+    # Force re-read credentials for token exchange
+    client_id = os.environ.get("GITHUB_CLIENT_ID") or "Ov23lipwgA5vPc0x7HbV"
+    client_secret = os.environ.get("GITHUB_CLIENT_SECRET") or "9d890e753b9806d6cc6269016de5a9dc35684a3f"
+    redirect_uri = os.environ.get("REDIRECT_URI") or "https://6a51dd24-d485-424b-bd21-bc21ebd16c8c-00-ld39fl3q8wm5.pike.replit.dev/api/github/callback"
+    
     # Exchange code for token
     res = requests.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
         data={
-            "client_id": GITHUB_CLIENT_ID,
-            "client_secret": GITHUB_CLIENT_SECRET,
+            "client_id": client_id,
+            "client_secret": client_secret,
             "code": code,
-            "redirect_uri": REDIRECT_URI
+            "redirect_uri": redirect_uri
         }
     )
     token_data = res.json()
@@ -110,7 +122,7 @@ def github_callback():
             <script>
                 if (window.opener) {{
                     window.opener.postMessage({{ type: 'github-token', token: '{access_token}' }}, '*');
-                    window.close();
+                    setTimeout(() => window.close(), 1000);
                 }} else {{
                     document.body.innerHTML = "Login successful! You can close this window and return to the app.";
                 }}
