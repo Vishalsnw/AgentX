@@ -5,19 +5,19 @@ import subprocess
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder='../client/dist')
+app = Flask(__name__, static_folder='../client/dist', static_url_path='')
 CORS(app)
 
-DEEPSEEK_API_KEY = "sk-68be7759cb7746dbb0b90edba8e78fe0"
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-68be7759cb7746dbb0b90edba8e78fe0")
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 
-@app.route('/')
-def serve():
-    return send_from_directory(app.static_folder, 'index.html')
-
+@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
-def static_proxy(path):
-    return send_from_directory(app.static_folder, path)
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
