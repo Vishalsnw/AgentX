@@ -10,6 +10,7 @@ CORS(app)
 
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-68be7759cb7746dbb0b90edba8e78fe0")
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
+GITHUB_TOKEN = "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"
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
@@ -126,7 +127,7 @@ def git_clone():
     if "github.com" not in repo_url:
         return jsonify({"error": "Only GitHub URLs are supported"}), 400
 
-    token = os.environ.get("GITHUB_TOKEN")
+    token = os.environ.get("GITHUB_TOKEN", GITHUB_TOKEN)
     if token:
         # Construct authenticated URL if token exists
         repo_url = repo_url.replace("https://github.com/", f"https://{token}@github.com/")
