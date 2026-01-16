@@ -115,16 +115,39 @@ def github_callback():
         """
     return "Authentication failed", 400
 
-@app.route('/api/git_auth', methods=['POST'])
-def git_auth():
+@app.route('/api/git_clone', methods=['POST'])
+def git_clone():
     data = request.json
-    token = data.get('token')
-    if not token:
-        return jsonify({"error": "Token is required"}), 400
-    os.environ["GITHUB_TOKEN"] = token
-    # Configure git to use the token
-    subprocess.run(["git", "config", "--global", "url.https://{}.@github.com/".format(token), "insteadOf", "https://github.com/"])
-    return jsonify({"status": "success", "message": "GitHub authenticated"})
+    repo_url = data.get('repo_url')
+    if not repo_url:
+        return jsonify({"error": "No repository URL provided"}), 400
+    
+    # Simple validation to ensure it's a github URL
+    if "github.com" not in repo_url:
+        return jsonify({"error": "Only GitHub URLs are supported"}), 400
+
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        # Construct authenticated URL if token exists
+        repo_url = repo_url.replace("https://github.com/", f"https://{token}@github.com/")
+
+    try:
+        # Extract folder name from URL
+        folder_name = repo_url.split('/')[-1].replace('.git', '').split('@')[-1]
+        target_path = os.path.join(os.getcwd(), folder_name)
+        
+        # If folder exists, don't clone
+        if os.path.exists(target_path):
+             return jsonify({"status": "success", "message": f"Folder {folder_name} already exists", "path": target_path})
+
+        result = subprocess.run(["git", "clone", repo_url, target_path], capture_output=True, text=True, timeout=60)
+        
+        if result.returncode == 0:
+            return jsonify({"status": "success", "message": f"Cloned into {folder_name}", "path": target_path})
+        else:
+            return jsonify({"status": "error", "message": result.stderr}), 500
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/git_operation', methods=['POST'])
 def git_operation():

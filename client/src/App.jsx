@@ -130,12 +130,15 @@ export default function App() {
         body: JSON.stringify({ repo_url: url })
       });
       const data = await res.json();
+      console.log("Clone response:", data);
       if (data.status === 'success') {
         setLogs(prev => [...prev, `Success: ${data.message}`]);
         setRepoPath(data.path);
       } else {
         setLogs(prev => [...prev, `Error: ${data.message || data.error}`]);
       }
+    } catch (error) {
+      setLogs(prev => [...prev, `Error: ${error.message}`]);
     } finally {
       setLoading(false);
     }
