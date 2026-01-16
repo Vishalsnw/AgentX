@@ -69,7 +69,8 @@ export default function App() {
   const fetchRepos = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/github/repos');
+      const token = localStorage.getItem('github_token');
+      const res = await fetch(`/api/github/repos?token=${encodeURIComponent(token || '')}`);
       const data = await res.json();
       if (Array.isArray(data)) {
         setRepos(data);
@@ -89,10 +90,11 @@ export default function App() {
     setLogs(prev => [...prev, `Cloning ${repoUrl}...`]);
     setLoading(true);
     try {
+      const token = localStorage.getItem('github_token');
       const res = await fetch('/api/git_clone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repo_url: repoUrl })
+        body: JSON.stringify({ repo_url: repoUrl, token: token })
       });
       const data = await res.json();
       if (data.status === 'success') {
