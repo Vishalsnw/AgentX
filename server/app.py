@@ -164,6 +164,20 @@ def git_operation():
         if op == 'pull':
             result = subprocess.run(["git", "-C", repo_path, "pull"], capture_output=True, text=True)
         elif op == 'push':
+            # Configure user identity if not set
+            subprocess.run(["git", "-C", repo_path, "config", "user.email", "agent@replica.com"], capture_output=True)
+            subprocess.run(["git", "-C", repo_path, "config", "user.name", "Agent Replica"], capture_output=True)
+            
+            # Ensure the remote URL uses the token for authentication
+            remotes = subprocess.run(["git", "-C", repo_path, "remote", "-v"], capture_output=True, text=True).stdout
+            if GITHUB_TOKEN and "github.com" in remotes and GITHUB_TOKEN not in remotes:
+                # Get the current remote URL (usually 'origin')
+                remote_name = "origin"
+                current_url = subprocess.run(["git", "-C", repo_path, "remote", "get-url", remote_name], capture_output=True, text=True).stdout.strip()
+                if "https://github.com/" in current_url:
+                    new_url = current_url.replace("https://github.com/", f"https://{GITHUB_TOKEN}@github.com/")
+                    subprocess.run(["git", "-C", repo_path, "remote", "set-url", remote_name, new_url], capture_output=True)
+
             subprocess.run(["git", "-C", repo_path, "add", "."], capture_output=True)
             subprocess.run(["git", "-C", repo_path, "commit", "-m", message], capture_output=True)
             result = subprocess.run(["git", "-C", repo_path, "push"], capture_output=True, text=True)
