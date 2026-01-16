@@ -123,13 +123,21 @@ def get_github_repos():
         return jsonify({"error": "GitHub not authenticated"}), 401
     
     try:
-        res = requests.get(
-            "https://api.github.com/user/repos?sort=updated&per_page=100",
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Accept": "application/vnd.github.v3+json"
-            }
-        )
+        # Standard GitHub PATs work best with 'token' for legacy classic PATs or 'Bearer' for fine-grained
+        # Let's try to be as compatible as possible
+        headers = {
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        # Test with 'token ' first as it's the most common for classic PATs
+        headers["Authorization"] = f"token {token}"
+        res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", headers=headers)
+        
+        if res.status_code == 401:
+            # Fallback to Bearer
+            headers["Authorization"] = f"Bearer {token}"
+            res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", headers=headers)
+
         if res.status_code == 200:
             repos = [{"name": r["full_name"], "url": r["html_url"]} for r in res.json()]
             return jsonify(repos)
