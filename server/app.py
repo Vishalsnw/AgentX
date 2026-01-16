@@ -200,8 +200,8 @@ def git_clone():
         if os.path.exists(target_path):
              return jsonify({"status": "success", "message": f"Folder {folder_name} already exists", "path": target_path})
 
-        # Use absolute path to git if necessary
-        git_binary = subprocess.run(["which", "git"], capture_output=True, text=True).stdout.strip() or "git"
+        # Use the absolute path discovered via shell directly
+        git_binary = "/nix/store/smaydcvrcaz906653vbnps70y9j7w658-git-2.49.0/bin/git"
         result = subprocess.run([git_binary, "clone", repo_url, target_path], capture_output=True, text=True, timeout=60)
         
         if result.returncode == 0:
@@ -231,11 +231,10 @@ def git_operation():
         return jsonify({"error": "Repository path does not exist"}), 400
 
     try:
+        git_binary = "/nix/store/smaydcvrcaz906653vbnps70y9j7w658-git-2.49.0/bin/git"
         if op == 'pull':
-            git_binary = subprocess.run(["which", "git"], capture_output=True, text=True).stdout.strip() or "git"
             result = subprocess.run([git_binary, "-C", repo_path, "pull"], capture_output=True, text=True)
         elif op == 'push':
-            git_binary = subprocess.run(["which", "git"], capture_output=True, text=True).stdout.strip() or "git"
             # Configure user identity if not set
             subprocess.run([git_binary, "-C", repo_path, "config", "user.email", "agent@replica.com"], capture_output=True)
             subprocess.run([git_binary, "-C", repo_path, "config", "user.name", "Agent Replica"], capture_output=True)
