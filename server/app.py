@@ -169,28 +169,21 @@ def get_github_repos():
             return jsonify({"error": f"GitHub API Error ({res.status_code}): {res.json().get('message', 'Check if your token is valid and has repo scope.')}"}), res.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+import git
+
 @app.route('/api/git_clone', methods=['POST'])
 def git_clone():
     data = request.json
     repo_url = data.get('repo_url')
+    token = data.get('token') or os.environ.get("GITHUB_TOKEN_SECRET") or os.environ.get("GITHUB_TOKEN")
+    
     if not repo_url:
         return jsonify({"error": "No repository URL provided"}), 400
     
-    # Simple validation to ensure it's a github URL
     if "github.com" not in repo_url:
         return jsonify({"error": "Only GitHub URLs are supported"}), 400
 
-    # Prioritize locally provided token from git_auth endpoint
-    token = os.environ.get("GITHUB_TOKEN")
-    
-    # Fallback to secret in env
-    if not token:
-        token = os.environ.get("GITHUB_TOKEN_SECRET")
-    if not token:
-        token = os.environ.get("GITHUB_TOKEN")
-
     if token:
-        # Construct authenticated URL if token exists
         repo_url = repo_url.replace("https://github.com/", f"https://{token}@github.com/")
 
     try:
@@ -200,29 +193,15 @@ def git_clone():
         if os.path.exists(target_path):
              return jsonify({"status": "success", "message": f"Folder {folder_name} already exists", "path": target_path})
 
-        # Use shell=True to allow the system to resolve 'git' from the environment PATH
-        result = subprocess.run(f"git clone {repo_url} {target_path}", shell=True, capture_output=True, text=True, timeout=60)
-        
-        if result.returncode == 0:
-            return jsonify({"status": "success", "message": f"Cloned into {folder_name}", "path": target_path})
-        else:
-            return jsonify({"status": "error", "message": result.stderr}), 500
+        git.Repo.clone_from(repo_url, target_path)
+        return jsonify({"status": "success", "message": f"Cloned into {folder_name}", "path": target_path})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route('/api/git_auth', methods=['POST'])
-def git_auth():
-    data = request.json
-    token = data.get('token')
-    if not token:
-        return jsonify({"error": "Token is required"}), 400
-    os.environ["GITHUB_TOKEN"] = token
-    return jsonify({"status": "success", "message": "GitHub authenticated locally"})
 
 @app.route('/api/git_operation', methods=['POST'])
 def git_operation():
     data = request.json
-    op = data.get('operation') # 'pull' or 'push'
+    op = data.get('operation')
     repo_path = data.get('path')
     message = data.get('message', 'Update from Agent Replica')
     
@@ -230,36 +209,28 @@ def git_operation():
         return jsonify({"error": "Repository path does not exist"}), 400
 
     try:
+        repo = git.Repo(repo_path)
         if op == 'pull':
-            result = subprocess.run(f"git -C {repo_path} pull", shell=True, capture_output=True, text=True)
+            repo.remotes.origin.pull()
+            return jsonify({"status": "success", "output": "Pulled successfully"})
         elif op == 'push':
-            # Configure user identity if not set
-            subprocess.run(f"git -C {repo_path} config user.email agent@replica.com", shell=True, capture_output=True)
-            subprocess.run(f"git -C {repo_path} config user.name 'Agent Replica'", shell=True, capture_output=True)
-            
-            # Ensure the remote URL uses the token for authentication
-            remotes = subprocess.run(f"git -C {repo_path} remote -v", shell=True, capture_output=True, text=True).stdout
+            repo.config_writer().set_value("user", "email", "agent@replica.com").release()
+            repo.config_writer().set_value("user", "name", "Agent Replica").release()
             
             token = os.environ.get("GITHUB_TOKEN_SECRET") or os.environ.get("GITHUB_TOKEN")
-            
-            if token and "github.com" in remotes and token not in remotes:
-                # Get the current remote URL (usually 'origin')
-                remote_name = "origin"
-                current_url = subprocess.run(f"git -C {repo_path} remote get-url {remote_name}", shell=True, capture_output=True, text=True).stdout.strip()
-                if "https://github.com/" in current_url:
-                    new_url = current_url.replace("https://github.com/", f"https://{token}@github.com/")
-                    subprocess.run(f"git -C {repo_path} remote set-url {remote_name} {new_url}", shell=True, capture_output=True)
+            if token:
+                origin = repo.remote('origin')
+                url = origin.url
+                if "https://github.com/" in url and token not in url:
+                    new_url = url.replace("https://github.com/", f"https://{token}@github.com/")
+                    origin.set_url(new_url)
 
-            subprocess.run(f"git -C {repo_path} add .", shell=True, capture_output=True)
-            subprocess.run(f"git -C {repo_path} commit -m '{message}'", shell=True, capture_output=True)
-            result = subprocess.run(f"git -C {repo_path} push", shell=True, capture_output=True, text=True)
+            repo.git.add(A=True)
+            repo.index.commit(message)
+            repo.remotes.origin.push()
+            return jsonify({"status": "success", "output": "Pushed successfully"})
         else:
             return jsonify({"error": "Invalid operation"}), 400
-
-        if result.returncode == 0:
-            return jsonify({"status": "success", "output": result.stdout})
-        else:
-            return jsonify({"status": "error", "message": result.stderr}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
