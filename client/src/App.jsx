@@ -64,6 +64,7 @@ export default function App() {
   };
 
   const [repos, setRepos] = useState([]);
+  const [repoPath, setRepoPath] = useState('');
   const [showRepoList, setShowRepoList] = useState(false);
 
   const fetchRepos = async () => {
@@ -81,7 +82,14 @@ export default function App() {
           'Authorization': `token ${token.trim()}`
         }
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Repo Response not JSON:", text);
+        throw new Error("Server error (Check Vercel Logs)");
+      }
       if (Array.isArray(data)) {
         setRepos(data);
         setShowRepoList(true);
@@ -134,7 +142,14 @@ export default function App() {
     try {
       setLoading(true);
       const res = await fetch('/api/auth/github');
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("Auth Response not JSON:", text);
+        throw new Error("Server returned non-JSON response. Check if Vercel API is working.");
+      }
       if (data.url) {
         window.open(data.url, 'GitHub Login', 'width=600,height=700');
       } else {
