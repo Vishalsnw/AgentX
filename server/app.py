@@ -1,7 +1,7 @@
 import os
 import json
 import requests
-import subprocess
+import git
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
@@ -10,27 +10,15 @@ CORS(app)
 
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-68be7759cb7746dbb0b90edba8e78fe0")
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN_SECRET", "sk-placeholder")
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
-def serve(path):
-    if path != "" and os.path.exists(app.static_folder + '/' + path):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.json
     messages = data.get('messages', [])
-    
-    # System prompt to act as Replit Agent
     system_prompt = {
         "role": "system",
         "content": "You are a Replit Agent replica. You can write code, create files, and debug. When asked to create an app, provide the file structure and contents in a JSON-parsable format: {\"files\": [{\"path\": \"filename\", \"content\": \"...\"}]}."
     }
-    
     response = requests.post(
         DEEPSEEK_URL,
         headers={"Authorization": f"Bearer {DEEPSEEK_API_KEY}", "Content-Type": "application/json"},
@@ -43,6 +31,7 @@ def chat():
 
 @app.route('/api/execute', methods=['POST'])
 def execute():
+    import subprocess
     data = request.json
     command = data.get('command')
     try:
@@ -72,167 +61,75 @@ def write_files():
             results.append({"path": path, "status": "error", "message": str(e)})
     return jsonify(results)
 
-GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID")
-GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET")
-REDIRECT_URI = os.environ.get("REDIRECT_URI")
-
 @app.route('/api/auth/github')
 def github_login():
-    # Force re-read from os.environ to ensure we get the latest values
-    client_id = os.environ.get("GITHUB_CLIENT_ID")
-    redirect_uri = os.environ.get("REDIRECT_URI")
-    
-    # Ensure redirect_uri exactly matches what is in GitHub App settings
-    if not client_id or not redirect_uri:
-        client_id = client_id or "Ov23lipwgA5vPc0x7HbV"
-        redirect_uri = redirect_uri or "https://agent-x-tawny.vercel.app/api/github/callback"
-        
+    client_id = os.environ.get("GITHUB_CLIENT_ID") or "Ov23lipwgA5vPc0x7HbV"
+    redirect_uri = os.environ.get("REDIRECT_URI") or "https://agent-x-tawny.vercel.app/api/github/callback"
     url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}&scope=repo,user"
     return jsonify({"url": url})
 
 @app.route('/api/github/callback')
 def github_callback():
     code = request.args.get('code')
-    if not code:
-        return "No code provided", 400
-    
-    # Force re-read credentials for token exchange
+    if not code: return "No code provided", 400
     client_id = os.environ.get("GITHUB_CLIENT_ID") or "Ov23lipwgA5vPc0x7HbV"
     client_secret = os.environ.get("GITHUB_CLIENT_SECRET") or "9d890e753b9806d6cc6269016de5a9dc35684a3f"
     redirect_uri = os.environ.get("REDIRECT_URI") or "https://agent-x-tawny.vercel.app/api/github/callback"
-    
-    # Exchange code for token
     res = requests.post(
         "https://github.com/login/oauth/access_token",
         headers={"Accept": "application/json"},
-        data={
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "code": code,
-            "redirect_uri": redirect_uri
-        }
+        data={"client_id": client_id, "client_secret": client_secret, "code": code, "redirect_uri": redirect_uri}
     )
     token_data = res.json()
     access_token = token_data.get('access_token')
-    
     if access_token:
-        # Pass token back to frontend via postMessage
-        return f"""
-        <html>
-            <script>
-                if (window.opener) {{
-                    window.opener.postMessage({{ type: 'github-token', token: '{access_token}' }}, '*');
-                    setTimeout(() => window.close(), 1000);
-                }} else {{
-                    document.body.innerHTML = "Login successful! You can close this window and return to the app.";
-                }}
-            </script>
-            <body>Authentication successful! Redirecting...</body>
-        </html>
-        """
-    return f"Authentication failed: {token_data.get('error_description', 'Unknown error')}", 400
+        return f"<html><script>if(window.opener){{window.opener.postMessage({{type:'github-token',token:'{access_token}'}},'*');setTimeout(()=>window.close(),1000);}}else{{document.body.innerHTML='Login successful!';}}</script><body>Authenticating...</body></html>"
+    return f"Auth failed: {token_data.get('error_description', 'Unknown')}", 400
 
-@app.route('/api/github/repos', methods=['GET'])
+@app.route('/api/github/repos')
 def get_github_repos():
-    token = request.args.get('token')
-    if not token:
-        token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN_SECRET")
-        
-    if not token:
-        return jsonify({"error": "GitHub not authenticated"}), 401
-    
-    token = token.strip()
-    
-    try:
-        # Standard PAT format
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": f"token {token}"
-        }
-        res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", headers=headers)
-        
-        # If that fails, try modern Bearer format
-        if res.status_code == 401:
-            headers["Authorization"] = f"Bearer {token}"
-            res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", headers=headers)
-
-        if res.status_code == 200:
-            repos = [{"name": r["full_name"], "url": r["html_url"]} for r in res.json()]
-            return jsonify(repos)
-        else:
-            # Fallback: check if the user is using the token as a username/password (old git style)
-            res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", auth=(token, ''))
-            if res.status_code == 200:
-                repos = [{"name": r["full_name"], "url": r["html_url"]} for r in res.json()]
-                return jsonify(repos)
-                
-            return jsonify({"error": f"GitHub API Error ({res.status_code}): {res.json().get('message', 'Check if your token is valid and has repo scope.')}"}), res.status_code
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-import git
+    token = request.args.get('token') or os.environ.get("GITHUB_TOKEN_SECRET")
+    if not token: return jsonify({"error": "No token"}), 401
+    headers = {"Accept": "application/vnd.github.v3+json", "Authorization": f"token {token}"}
+    res = requests.get("https://api.github.com/user/repos?sort=updated&per_page=100", headers=headers)
+    if res.status_code == 200:
+        return jsonify([{"name": r["full_name"], "url": r["html_url"]} for r in res.json()])
+    return jsonify({"error": res.json().get('message', 'Error')}), res.status_code
 
 @app.route('/api/git_clone', methods=['POST'])
 def git_clone():
     data = request.json
-    repo_url = data.get('repo_url')
-    token = data.get('token') or os.environ.get("GITHUB_TOKEN_SECRET") or os.environ.get("GITHUB_TOKEN")
-    
-    if not repo_url:
-        return jsonify({"error": "No repository URL provided"}), 400
-    
-    if "github.com" not in repo_url:
-        return jsonify({"error": "Only GitHub URLs are supported"}), 400
-
-    if token:
-        repo_url = repo_url.replace("https://github.com/", f"https://{token}@github.com/")
-
+    repo_url, token = data.get('repo_url'), data.get('token') or os.environ.get("GITHUB_TOKEN_SECRET")
+    if not repo_url: return jsonify({"error": "No URL"}), 400
+    if token: repo_url = repo_url.replace("https://github.com/", f"https://{token}@github.com/")
     try:
-        folder_name = repo_url.split('/')[-1].replace('.git', '').split('@')[-1]
-        target_path = os.path.join(os.getcwd(), folder_name)
-        
-        if os.path.exists(target_path):
-             return jsonify({"status": "success", "message": f"Folder {folder_name} already exists", "path": target_path})
-
-        git.Repo.clone_from(repo_url, target_path)
-        return jsonify({"status": "success", "message": f"Cloned into {folder_name}", "path": target_path})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        folder = repo_url.split('/')[-1].replace('.git', '').split('@')[-1]
+        path = os.path.join(os.getcwd(), folder)
+        if os.path.exists(path): return jsonify({"status": "success", "path": path})
+        git.Repo.clone_from(repo_url, path)
+        return jsonify({"status": "success", "path": path})
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
 @app.route('/api/git_operation', methods=['POST'])
 def git_operation():
     data = request.json
-    op = data.get('operation')
-    repo_path = data.get('path')
-    message = data.get('message', 'Update from Agent Replica')
-    
-    if not os.path.exists(repo_path):
-        return jsonify({"error": "Repository path does not exist"}), 400
-
+    op, path, msg = data.get('operation'), data.get('path'), data.get('message', 'Update')
     try:
-        repo = git.Repo(repo_path)
-        if op == 'pull':
-            repo.remotes.origin.pull()
-            return jsonify({"status": "success", "output": "Pulled successfully"})
-        elif op == 'push':
+        repo = git.Repo(path)
+        if op == 'pull': repo.remotes.origin.pull(); return jsonify({"status": "success"})
+        if op == 'push':
             repo.config_writer().set_value("user", "email", "agent@replica.com").release()
-            repo.config_writer().set_value("user", "name", "Agent Replica").release()
-            
-            token = os.environ.get("GITHUB_TOKEN_SECRET") or os.environ.get("GITHUB_TOKEN")
+            repo.config_writer().set_value("user", "name", "Agent").release()
+            token = os.environ.get("GITHUB_TOKEN_SECRET")
             if token:
                 origin = repo.remote('origin')
-                url = origin.url
-                if "https://github.com/" in url and token not in url:
-                    new_url = url.replace("https://github.com/", f"https://{token}@github.com/")
-                    origin.set_url(new_url)
+                if token not in origin.url: origin.set_url(origin.url.replace("https://github.com/", f"https://{token}@github.com/"))
+            repo.git.add(A=True); repo.index.commit(msg); repo.remotes.origin.push()
+            return jsonify({"status": "success"})
+    except Exception as e: return jsonify({"error": str(e)}), 500
 
-            repo.git.add(A=True)
-            repo.index.commit(message)
-            repo.remotes.origin.push()
-            return jsonify({"status": "success", "output": "Pushed successfully"})
-        else:
-            return jsonify({"error": "Invalid operation"}), 400
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
