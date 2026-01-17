@@ -5,7 +5,7 @@ import subprocess
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-app = Flask(__name__, static_folder='../client/dist', static_url_path='')
+app = Flask(__name__)
 CORS(app)
 
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-68be7759cb7746dbb0b90edba8e78fe0")
