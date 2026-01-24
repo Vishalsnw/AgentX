@@ -1,6 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
-export async function POST(req) {
+export async function GET(req: NextRequest) {
+  console.log(`GET ${req.nextUrl.pathname}`);
+  return NextResponse.json({ status: "Chat API is active. Use POST to send messages." });
+}
+
+export async function POST(req: NextRequest) {
+  console.log(`POST ${req.nextUrl.pathname}`);
   try {
     const { messages } = await req.json();
     const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "sk-68be7759cb7746dbb0b90edba8e78fe0";
@@ -23,7 +29,7 @@ export async function POST(req) {
     });
     const data = await response.json();
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }

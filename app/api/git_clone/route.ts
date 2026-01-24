@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import path from 'path';
 
-export async function POST(req) {
+export async function POST(req: NextRequest) {
+  console.log(`POST ${req.nextUrl.pathname}`);
   try {
     const { repo_url, token } = await req.json();
     const gtoken = token || process.env.GITHUB_TOKEN_SECRET;
@@ -17,7 +18,7 @@ export async function POST(req) {
     
     await execPromise(`git clone ${url} ${targetPath}`);
     return NextResponse.json({ status: "success", path: targetPath });
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
-export async function POST(req) {
+export async function POST(req: NextRequest) {
+  console.log(`POST ${req.nextUrl.pathname}`);
   try {
     const { operation, path, message } = await req.json();
     const { exec } = require('child_process');
@@ -17,7 +18,7 @@ export async function POST(req) {
       await execPromise(`git -C ${path} push`);
     }
     return NextResponse.json({ status: "success" });
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }

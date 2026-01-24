@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 
-export async function GET(req) {
+export async function GET(req: NextRequest) {
+  console.log(`GET ${req.nextUrl.pathname}`);
   try {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
@@ -21,7 +22,7 @@ export async function GET(req) {
       return new Response(html, { headers: { 'Content-Type': 'text/html' } });
     }
     return NextResponse.json({ error: true, message: data.error_description || 'Auth failed' }, { status: 400 });
-  } catch (error) {
+  } catch (error: any) {
     return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }
