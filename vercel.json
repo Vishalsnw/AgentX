@@ -22,8 +22,9 @@
         "Content-Type": "application/json"
       }
     },
-    { "src": "/(.*)", "dest": "/dist/$1", "continue": true },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "dist/index.html" }
+    { "src": "/dist/(.*)", "dest": "/dist/$1" },
+    { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
+    { "src": "/(.*)", "dest": "/dist/index.html", "continue": true },
+    { "handle": "filesystem" }
   ]
 }

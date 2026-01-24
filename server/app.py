@@ -9,6 +9,12 @@ STATIC_FOLDER = os.path.join(os.path.dirname(__file__), '..', 'client', 'dist')
 app = Flask(__name__, static_folder=STATIC_FOLDER, static_url_path='')
 CORS(app)
 
+@app.before_request
+def log_request_info():
+    app.logger.debug('Headers: %s', request.headers)
+    app.logger.debug('Body: %s', request.get_data())
+    app.logger.info('Path: %s', request.path)
+
 @app.route('/')
 def serve_index():
     return send_from_directory(STATIC_FOLDER, 'index.html')
