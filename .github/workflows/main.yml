@@ -1,0 +1,27 @@
+name: Delete all repository files
+
+on:
+  workflow_dispatch: # manual trigger only
+
+jobs:
+  wipe-repo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete all files except .git
+        run: |
+          shopt -s extglob
+          rm -rf !(.git|.github)
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add -A
+          git commit -m "🔥 Wipe repository: delete all files"
+          git push
