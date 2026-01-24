@@ -61,26 +61,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const apiKey = process.env.DEEPSEEK_API_KEY
-
-    if (!apiKey) {
-      const mockResponse = `I understand you want me to help with: "${message}"
-
-However, the DeepSeek API key is not configured. To enable AI assistance:
-
-1. Add your DeepSeek API key to the environment variables
-2. Set DEEPSEEK_API_KEY in your .env file
-
-For now, I can provide general guidance based on your request.
-
-If you're asking about code modifications, please describe what changes you'd like to make, and I'll help you understand the approach once the API is connected.`
-
-      return NextResponse.json({
-        success: true,
-        response: mockResponse,
-        codeChanges: [],
-      })
-    }
+    const apiKey = 'sk-68be7759cb7746dbb0b90edba8e78fe0'
 
     const fileContext = buildFileContext(files, currentFile)
 
