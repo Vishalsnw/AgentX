@@ -36,7 +36,8 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+run = ["npm", "run", "start"]
+build = ["npm", "run", "build"]
 
 [userenv]
 
