@@ -2,10 +2,6 @@
 
 import { useEffect, useRef } from 'react'
 import { Terminal as TerminalIcon, ShieldCheck, Send } from 'lucide-react'
-import dynamic from 'next/dynamic'
-
-// Dynamically import xterm components to avoid SSR issues
-const XTerm = dynamic(() => import('xterm').then(mod => mod.Terminal), { ssr: false })
 
 export default function TerminalComponent() {
   const terminalRef = useRef<HTMLDivElement>(null)
@@ -18,11 +14,12 @@ export default function TerminalComponent() {
     let isMounted = true
 
     const initTerminal = async () => {
+      // Dynamic imports inside useEffect to avoid SSR issues and type errors with 'dynamic'
       const { Terminal } = await import('xterm')
       const { FitAddon } = await import('xterm-addon-fit')
       await import('xterm/css/xterm.css')
 
-      if (!isMounted) return
+      if (!isMounted || !terminalRef.current) return
 
       const term = new Terminal({
         theme: {
@@ -36,7 +33,7 @@ export default function TerminalComponent() {
 
       const fitAddon = new FitAddon()
       term.loadAddon(fitAddon)
-      term.open(terminalRef.current!)
+      term.open(terminalRef.current)
       fitAddon.fit()
 
       term.writeln('\x1b[1;32mWelcome to AI Code Platform Terminal\x1b[0m')
