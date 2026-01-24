@@ -5,6 +5,7 @@ import FileExplorer from '@/components/FileExplorer'
 import CodeEditor from '@/components/CodeEditor'
 import AIChat from '@/components/AIChat'
 import Console from '@/components/Console'
+import Terminal from '@/components/Terminal'
 import Header from '@/components/Header'
 import ImportModal from '@/components/ImportModal'
 import { FileNode, Message } from '@/types'
@@ -88,6 +89,7 @@ export default function Home() {
           </div>
           
           <Console logs={logs} />
+          <Terminal />
         </div>
       </div>
 

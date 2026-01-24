@@ -1,0 +1,130 @@
+'use client'
+
+import { useEffect, useRef } from 'react'
+import { Terminal as XTerm } from 'xterm'
+import { FitAddon } from 'xterm-addon-fit'
+import 'xterm/css/xterm.css'
+import { Terminal as TerminalIcon, ShieldCheck, Send } from 'lucide-react'
+
+export default function TerminalComponent() {
+  const terminalRef = useRef<HTMLDivElement>(null)
+  const xtermRef = useRef<XTerm | null>(null)
+
+  useEffect(() => {
+    if (!terminalRef.current) return
+
+    const term = new XTerm({
+      theme: {
+        background: '#1e1e1e',
+        foreground: '#cccccc',
+      },
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontSize: 12,
+      cursorBlink: true,
+    })
+
+    const fitAddon = new FitAddon()
+    term.loadAddon(fitAddon)
+    term.open(terminalRef.current)
+    fitAddon.fit()
+
+    term.writeln('\x1b[1;32mWelcome to AI Code Platform Terminal\x1b[0m')
+    term.writeln('Type \x1b[1;34m"push"\x1b[0m to simulate code push or \x1b[1;34m"auth"\x1b[0m for git authentication.')
+    term.write('\n\r$ ')
+
+    let command = ''
+    term.onData(e => {
+      switch (e) {
+        case '\r': // Enter
+          term.writeln('')
+          handleCommand(command, term)
+          command = ''
+          term.write('\r$ ')
+          break
+        case '\u007f': // Backspace
+          if (command.length > 0) {
+            command = command.slice(0, -1)
+            term.write('\b \b')
+          }
+          break
+        default:
+          if (e >= String.fromCharCode(0x20) && e <= String.fromCharCode(0x7e)) {
+            command += e
+            term.write(e)
+          }
+      }
+    })
+
+    xtermRef.current = term
+
+    return () => {
+      term.dispose()
+    }
+  }, [])
+
+  const handleCommand = (cmd: string, term: XTerm) => {
+    const trimmedCmd = cmd.trim().toLowerCase()
+    if (trimmedCmd === 'push') {
+      term.writeln('Pushing code to repository...')
+      term.writeln('Enumerating objects: 5, done.')
+      term.writeln('Counting objects: 100% (5/5), done.')
+      term.writeln('Delta compression using up to 8 threads')
+      term.writeln('Compressing objects: 100% (3/3), done.')
+      term.writeln('Writing objects: 100% (3/3), 324 bytes | 324.00 KiB/s, done.')
+      term.writeln('Total 3 (delta 2), reused 0 (delta 0), pack-reused 0')
+      term.writeln('\x1b[1;32mTo https://github.com/user/repo.git\x1b[0m')
+      term.writeln('   a1b2c3d..e5f6g7h  main -> main')
+    } else if (trimmedCmd === 'auth') {
+      term.writeln('Starting Git authentication process...')
+      term.writeln('\x1b[1;33mPlease enter your credentials in the platform settings.\x1b[0m')
+      term.writeln('Git Credential Manager: Ready.')
+    } else if (trimmedCmd !== '') {
+      term.writeln(`Command not found: ${cmd}`)
+    }
+  }
+
+  const simulatePush = () => {
+    if (xtermRef.current) {
+      xtermRef.current.writeln('\r\n$ push')
+      handleCommand('push', xtermRef.current)
+      xtermRef.current.write('\r$ ')
+    }
+  }
+
+  const simulateAuth = () => {
+    if (xtermRef.current) {
+      xtermRef.current.writeln('\r\n$ auth')
+      handleCommand('auth', xtermRef.current)
+      xtermRef.current.write('\r$ ')
+    }
+  }
+
+  return (
+    <div className="h-48 bg-panel-bg border-t border-gray-700 flex flex-col">
+      <div className="flex items-center justify-between px-4 py-2 bg-sidebar-bg border-b border-gray-700">
+        <div className="flex items-center gap-4 text-sm text-gray-400">
+          <div className="flex items-center gap-2">
+            <TerminalIcon size={16} />
+            <span>Terminal</span>
+          </div>
+          <button 
+            onClick={simulatePush}
+            className="flex items-center gap-1 hover:text-white transition-colors"
+          >
+            <Send size={14} />
+            <span>Push Code</span>
+          </button>
+          <button 
+            onClick={simulateAuth}
+            className="flex items-center gap-1 hover:text-white transition-colors"
+          >
+            <ShieldCheck size={14} />
+            <span>Git Auth</span>
+          </button>
+        </div>
+      </div>
+      
+      <div className="flex-1 overflow-hidden p-2" ref={terminalRef} />
+    </div>
+  )
+}
