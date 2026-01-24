@@ -1,8 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "regions": ["iad1"],
-  "env": {
-    "DEEPSEEK_API_KEY": "@deepseek_api_key"
-  }
+  "regions": ["iad1"]
 }
