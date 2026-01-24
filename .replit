@@ -1,10 +1,10 @@
-modules = ["python-3.11", "nodejs-20"]
+modules = ["nodejs-20", "python-3.11", "web"]
 [agent]
 expertMode = true
 
 [nix]
 channel = "stable-25_05"
-packages = ["git"]
+packages = ["git", "openssl", "postgresql"]
 
 [workflows]
 runButton = "Project"
@@ -16,19 +16,16 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Run Agent Replica Server"
+args = "Start application"
 
 [[workflows.workflow]]
-name = "Run Agent Replica Server"
+name = "Start application"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python server/app.py"
+args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [[ports]]
 localPort = 5000
@@ -36,7 +33,7 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["python", "server/app.py"]
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 
 [userenv]
 
