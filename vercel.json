@@ -17,14 +17,9 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/app.py",
-      "headers": {
-        "Content-Type": "application/json"
-      }
+      "dest": "/server/app.py"
     },
-    { "src": "/dist/(.*)", "dest": "/dist/$1" },
     { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
-    { "src": "/(.*)", "dest": "/dist/index.html", "continue": true },
-    { "handle": "filesystem" }
+    { "src": "/(.*)", "dest": "/dist/index.html" }
   ]
 }

@@ -48,6 +48,7 @@ def add_header(response):
 
 @app.route('/api/chat', methods=['POST'])
 def chat():
+    print(f"Request path: {request.path}")
     try:
         data = request.json
         if not data:
