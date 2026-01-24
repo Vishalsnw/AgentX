@@ -1,68 +1,92 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Terminal as XTerm } from 'xterm'
-import { FitAddon } from 'xterm-addon-fit'
-import 'xterm/css/xterm.css'
 import { Terminal as TerminalIcon, ShieldCheck, Send } from 'lucide-react'
+import dynamic from 'next/dynamic'
+
+// Dynamically import xterm components to avoid SSR issues
+const XTerm = dynamic(() => import('xterm').then(mod => mod.Terminal), { ssr: false })
 
 export default function TerminalComponent() {
   const terminalRef = useRef<HTMLDivElement>(null)
-  const xtermRef = useRef<XTerm | null>(null)
+  const xtermRef = useRef<any>(null)
 
   useEffect(() => {
-    if (!terminalRef.current) return
+    // Only run on client
+    if (typeof window === 'undefined' || !terminalRef.current) return
 
-    const term = new XTerm({
-      theme: {
-        background: '#1e1e1e',
-        foreground: '#cccccc',
-      },
-      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-      fontSize: 12,
-      cursorBlink: true,
-    })
+    let isMounted = true
 
-    const fitAddon = new FitAddon()
-    term.loadAddon(fitAddon)
-    term.open(terminalRef.current)
-    fitAddon.fit()
+    const initTerminal = async () => {
+      const { Terminal } = await import('xterm')
+      const { FitAddon } = await import('xterm-addon-fit')
+      await import('xterm/css/xterm.css')
 
-    term.writeln('\x1b[1;32mWelcome to AI Code Platform Terminal\x1b[0m')
-    term.writeln('Type \x1b[1;34m"push"\x1b[0m to simulate code push or \x1b[1;34m"auth"\x1b[0m for git authentication.')
-    term.write('\n\r$ ')
+      if (!isMounted) return
 
-    let command = ''
-    term.onData(e => {
-      switch (e) {
-        case '\r': // Enter
-          term.writeln('')
-          handleCommand(command, term)
-          command = ''
-          term.write('\r$ ')
-          break
-        case '\u007f': // Backspace
-          if (command.length > 0) {
-            command = command.slice(0, -1)
-            term.write('\b \b')
-          }
-          break
-        default:
-          if (e >= String.fromCharCode(0x20) && e <= String.fromCharCode(0x7e)) {
-            command += e
-            term.write(e)
-          }
+      const term = new Terminal({
+        theme: {
+          background: '#1e1e1e',
+          foreground: '#cccccc',
+        },
+        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+        fontSize: 12,
+        cursorBlink: true,
+      })
+
+      const fitAddon = new FitAddon()
+      term.loadAddon(fitAddon)
+      term.open(terminalRef.current!)
+      fitAddon.fit()
+
+      term.writeln('\x1b[1;32mWelcome to AI Code Platform Terminal\x1b[0m')
+      term.writeln('Type \x1b[1;34m"push"\x1b[0m to simulate code push or \x1b[1;34m"auth"\x1b[0m for git authentication.')
+      term.write('\n\r$ ')
+
+      let command = ''
+      term.onData(e => {
+        switch (e) {
+          case '\r': // Enter
+            term.writeln('')
+            handleCommand(command, term)
+            command = ''
+            term.write('\r$ ')
+            break
+          case '\u007f': // Backspace
+            if (command.length > 0) {
+              command = command.slice(0, -1)
+              term.write('\b \b')
+            }
+            break
+          default:
+            if (e >= String.fromCharCode(0x20) && e <= String.fromCharCode(0x7e)) {
+              command += e
+              term.write(e)
+            }
+        }
+      })
+
+      xtermRef.current = term
+
+      const handleResize = () => {
+        fitAddon.fit()
       }
-    })
+      window.addEventListener('resize', handleResize)
 
-    xtermRef.current = term
+      return () => {
+        window.removeEventListener('resize', handleResize)
+        term.dispose()
+      }
+    }
+
+    initTerminal()
 
     return () => {
-      term.dispose()
+      isMounted = false
     }
   }, [])
 
-  const handleCommand = (cmd: string, term: XTerm) => {
+  const handleCommand = (cmd: string, term: any) => {
     const trimmedCmd = cmd.trim().toLowerCase()
     if (trimmedCmd === 'push') {
       term.writeln('Pushing code to repository...')
