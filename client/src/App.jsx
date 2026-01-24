@@ -1,6 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Terminal, FileCode, Play, Github } from 'lucide-react';
 
+const safeFetch = async (url, options = {}) => {
+  const res = await fetch(url, options);
+  const text = await res.text();
+  const contentType = res.headers.get('content-type') || '';
+  
+  if (contentType.includes('application/json')) {
+    try {
+      return { ok: res.ok, status: res.status, data: JSON.parse(text) };
+    } catch (e) {
+      throw new Error('Invalid JSON response from server');
+    }
+  }
+  
+  if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+    throw new Error('Server returned HTML error page. API may be down or misconfigured.');
+  }
+  
+  try {
+    return { ok: res.ok, status: res.status, data: JSON.parse(text) };
+  } catch (e) {
+    throw new Error(`Server error: ${text.substring(0, 100)}`);
+  }
+};
+
 export default function App() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -19,21 +43,20 @@ export default function App() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const { data } = await safeFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: [...messages, userMsg] })
       });
-      const data = await res.json();
+      if (data.error) throw new Error(data.message);
       const aiContent = data.choices[0].message.content;
       setMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
 
-      // Attempt to parse and write files if JSON detected
       try {
         const jsonMatch = aiContent.match(/\{[\s\S]*"files"[\s\S]*\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
-          await fetch('/api/write_files', {
+          await safeFetch('/api/write_files', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ files: parsed.files })
@@ -53,14 +76,18 @@ export default function App() {
     const command = prompt("Enter shell command (e.g., kotlinc main.kt -include-runtime -d main.jar && java -jar main.jar):");
     if (!command) return;
     setLogs(prev => [...prev, `> ${command}`]);
-    const res = await fetch('/api/execute', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ command })
-    });
-    const data = await res.json();
-    if (data.stdout) setLogs(prev => [...prev, data.stdout]);
-    if (data.stderr) setLogs(prev => [...prev, `ERR: ${data.stderr}`]);
+    try {
+      const { data } = await safeFetch('/api/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+      });
+      if (data.error) throw new Error(data.message);
+      if (data.stdout) setLogs(prev => [...prev, data.stdout]);
+      if (data.stderr) setLogs(prev => [...prev, `ERR: ${data.stderr}`]);
+    } catch (error) {
+      setLogs(prev => [...prev, `Error: ${error.message}`]);
+    }
   };
 
   const [repos, setRepos] = useState([]);
@@ -77,24 +104,15 @@ export default function App() {
         return;
       }
       
-      const res = await fetch(`/api/github/repos?token=${encodeURIComponent(token.trim())}`, {
-        headers: {
-          'Authorization': `token ${token.trim()}`
-        }
+      const { data } = await safeFetch(`/api/github/repos?token=${encodeURIComponent(token.trim())}`, {
+        headers: { 'Authorization': `token ${token.trim()}` }
       });
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error("Repo Response not JSON:", text);
-        throw new Error("Server error (Check Vercel Logs)");
-      }
+      if (data.error) throw new Error(data.message || 'Bad credentials');
       if (Array.isArray(data)) {
         setRepos(data);
         setShowRepoList(true);
       } else {
-        alert("GitHub says: " + (data.error || "Bad credentials. Please ensure your token has 'repo' permissions."));
+        alert("GitHub says: " + (data.message || "Bad credentials. Please ensure your token has 'repo' permissions."));
       }
     } catch (error) {
       alert("System Error: " + error.message);
@@ -109,18 +127,19 @@ export default function App() {
     setLoading(true);
     try {
       const token = localStorage.getItem('github_token');
-      const res = await fetch('/api/git_clone', {
+      const { data } = await safeFetch('/api/git_clone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_url: repoUrl, token: token })
       });
-      const data = await res.json();
       if (data.status === 'success') {
-        setLogs(prev => [...prev, `Success: ${data.message}`]);
+        setLogs(prev => [...prev, `Success: Cloned to ${data.path}`]);
         setRepoPath(data.path);
       } else {
         setLogs(prev => [...prev, `Error: ${data.message || data.error}`]);
       }
+    } catch (error) {
+      setLogs(prev => [...prev, `Error: ${error.message}`]);
     } finally {
       setLoading(false);
     }
@@ -141,15 +160,8 @@ export default function App() {
   const authenticateGithub = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/auth/github');
-      const text = await res.text();
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error("Auth Response not JSON:", text);
-        throw new Error("Server returned non-JSON response. Check if Vercel API is working.");
-      }
+      const { data } = await safeFetch('/api/auth/github');
+      if (data.error) throw new Error(data.message);
       if (data.url) {
         window.open(data.url, 'GitHub Login', 'width=600,height=700');
       } else {
@@ -167,13 +179,14 @@ export default function App() {
     const message = op === 'push' ? prompt("Commit message:") : null;
     setLoading(true);
     try {
-      const res = await fetch('/api/git_operation', {
+      const { data } = await safeFetch('/api/git_operation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ operation: op, path: repoPath, message })
       });
-      const data = await res.json();
       setLogs(prev => [...prev, data.status === 'success' ? `${op} successful` : `Error: ${data.message}`]);
+    } catch (error) {
+      setLogs(prev => [...prev, `Error: ${error.message}`]);
     } finally {
       setLoading(false);
     }
@@ -185,15 +198,13 @@ export default function App() {
     setLogs(prev => [...prev, `Cloning ${url}...`]);
     setLoading(true);
     try {
-      const res = await fetch('/api/git_clone', {
+      const { data } = await safeFetch('/api/git_clone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ repo_url: url })
       });
-      const data = await res.json();
-      console.log("Clone response:", data);
       if (data.status === 'success') {
-        setLogs(prev => [...prev, `Success: ${data.message}`]);
+        setLogs(prev => [...prev, `Success: Cloned to ${data.path}`]);
         setRepoPath(data.path);
       } else {
         setLogs(prev => [...prev, `Error: ${data.message || data.error}`]);
