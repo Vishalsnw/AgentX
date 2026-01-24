@@ -21,12 +21,22 @@ def serve_static(path):
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "sk-68be7759cb7746dbb0b90edba8e78fe0")
 DEEPSEEK_URL = "https://api.deepseek.com/v1/chat/completions"
 
-@app.errorhandler(Exception)
-def handle_exception(e):
-    return jsonify({"error": True, "message": str(e)}), 500
+@app.errorhandler(404)
+def resource_not_found(e):
+    return jsonify({"error": True, "message": "Resource not found"}), 404
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": True, "message": "Method not allowed"}), 405
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return jsonify({"error": True, "message": "Internal server error"}), 500
 
 @app.after_request
 def add_header(response):
+    if response.mimetype == 'text/html' and request.path.startswith('/api/github/callback'):
+        return response
     response.headers['Content-Type'] = 'application/json'
     return response
 
