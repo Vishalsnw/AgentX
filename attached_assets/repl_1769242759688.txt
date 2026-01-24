@@ -1,0 +1,137 @@
+Build a production-ready web application similar to Replit with AI-assisted coding.
+
+Project goal:
+Create a browser-based coding platform that can:
+- Import GitHub repositories
+- Let users chat in natural language
+- Generate / modify code based on instructions
+- Preview and deploy apps on Vercel
+- Use DeepSeek API as the main code-generation model
+
+Tech stack:
+- Frontend: Next.js (App Router), TypeScript, Tailwind CSS
+- Backend: Next.js API routes (no custom servers)
+- AI Model: DeepSeek API (English-only)
+- Deployment: Vercel (fully compatible)
+- Auth: GitHub OAuth
+- Storage: In-memory + optional database abstraction
+
+--------------------------------------------------
+CORE FEATURES
+--------------------------------------------------
+
+1. Authentication
+- GitHub OAuth login
+- Store GitHub access token securely (env + server-side only)
+- No token exposed to frontend
+
+2. GitHub Repository Import
+- Allow user to:
+  - Paste GitHub repo URL
+  - Select branch
+- Clone repo server-side using GitHub API
+- Read file tree and contents
+- Represent files in a virtual filesystem (JSON-based)
+
+3. Code Workspace UI
+- Left panel: File explorer (folders/files)
+- Center panel: Code editor (Monaco editor)
+- Right panel: AI Chat (instruction-based)
+- Bottom panel: Console / logs
+
+4. AI Coding Engine (DeepSeek)
+IMPORTANT CONSTRAINTS:
+- DeepSeek must ALWAYS be used in English only
+- Never ask DeepSeek to output non-English text
+- Handle Hindi / other languages outside DeepSeek if needed
+
+AI workflow:
+- User instruction → converted to English
+- DeepSeek receives:
+  - Project context
+  - File structure
+  - Relevant files only (not entire repo)
+- DeepSeek returns:
+  - Code diffs
+  - File creation / updates
+  - Explanation
+
+5. Safe Code Modification
+- Apply AI changes file-by-file
+- Show diff preview before applying
+- Allow user to accept / reject changes
+- Never overwrite entire repo blindly
+
+6. Prompt Engineering Rules
+Use structured prompts like:
+
+"You are an expert software engineer.
+Modify ONLY the specified files.
+Do not hallucinate file paths.
+Follow the existing project structure."
+
+7. Build & Preview
+- Detect project type:
+  - Next.js
+  - React (Vite / CRA)
+  - Node.js
+- Show build command
+- Show preview URL (iframe or link)
+- No Docker required
+
+8. Vercel Deployment
+- One-click deploy to Vercel
+- Use Vercel API
+- Auto-detect framework
+- Inject env variables securely
+- Show deployment logs and status
+
+--------------------------------------------------
+SYSTEM CONSTRAINTS (VERY IMPORTANT)
+--------------------------------------------------
+
+- Do NOT use custom Express / Python servers
+- Do NOT use vercel.json for API routing hacks
+- Use Next.js App Router conventions only
+- All APIs must return JSON using NextResponse
+- Frontend must never assume JSON blindly
+- Always validate API responses
+
+--------------------------------------------------
+ERROR HANDLING
+--------------------------------------------------
+
+- Gracefully handle:
+  - GitHub auth failures
+  - Repo not found
+  - DeepSeek 500 errors
+  - Rate limits
+- Never crash the UI
+- Always show readable error messages
+
+--------------------------------------------------
+SECURITY
+--------------------------------------------------
+
+- GitHub tokens server-side only
+- No eval / unsafe code execution
+- Rate-limit AI requests
+- Sanitize AI output before applying
+
+--------------------------------------------------
+DELIVERABLE
+--------------------------------------------------
+
+Provide:
+1. Complete folder structure
+2. Key API routes
+3. Core UI components
+4. AI prompt templates
+5. GitHub import logic
+6. Deployment flow
+7. Clear explanations
+
+The final app should feel like:
+"Replit + ChatGPT + GitHub + Vercel"
+
+Production-ready, scalable, and maintainable.
