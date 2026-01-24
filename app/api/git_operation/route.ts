@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server';
+
 export async function POST(req) {
   try {
     const { operation, path, message } = await req.json();
@@ -14,8 +16,8 @@ export async function POST(req) {
       await execPromise(`git -C ${path} commit -m "${message || 'Update'}"`);
       await execPromise(`git -C ${path} push`);
     }
-    return Response.json({ status: "success" });
+    return NextResponse.json({ status: "success" });
   } catch (error) {
-    return Response.json({ error: true, message: error.message }, { status: 500 });
+    return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -11,13 +12,13 @@ export async function POST(req) {
       try {
         await fs.mkdir(path.dirname(filePath), { recursive: true });
         await fs.writeFile(filePath, f.content);
-        results.append({ path: f.path, status: "success" });
+        results.push({ path: f.path, status: "success" });
       } catch (e) {
-        results.append({ path: f.path, status: "error", message: e.message });
+        results.push({ path: f.path, status: "error", message: e.message });
       }
     }
-    return Response.json(results);
+    return NextResponse.json(results);
   } catch (error) {
-    return Response.json({ error: true, message: error.message }, { status: 500 });
+    return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }

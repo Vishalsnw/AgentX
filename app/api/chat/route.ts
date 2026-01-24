@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+import { NextResponse } from 'next/server';
 
 export async function POST(req) {
   try {
@@ -22,8 +22,8 @@ export async function POST(req) {
       })
     });
     const data = await response.json();
-    return Response.json(data);
+    return NextResponse.json(data);
   } catch (error) {
-    return Response.json({ error: true, message: error.message }, { status: 500 });
+    return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }

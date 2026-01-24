@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server';
+
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -18,8 +20,8 @@ export async function GET(req) {
       const html = `<html><script>if(window.opener){window.opener.postMessage({type:'github-token',token:'${token}'},'*');setTimeout(()=>window.close(),1000);}else{document.body.innerHTML='Login successful!';}</script><body>Authenticating...</body></html>`;
       return new Response(html, { headers: { 'Content-Type': 'text/html' } });
     }
-    return Response.json({ error: true, message: data.error_description || 'Auth failed' }, { status: 400 });
+    return NextResponse.json({ error: true, message: data.error_description || 'Auth failed' }, { status: 400 });
   } catch (error) {
-    return Response.json({ error: true, message: error.message }, { status: 500 });
+    return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }

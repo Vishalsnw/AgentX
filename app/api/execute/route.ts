@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server';
+
 export async function POST(req) {
   try {
     const { command } = await req.json();
@@ -6,9 +8,9 @@ export async function POST(req) {
     const execPromise = util.promisify(exec);
     
     const { stdout, stderr } = await execPromise(command, { timeout: 30000 });
-    return Response.json({ stdout, stderr, code: 0 });
+    return NextResponse.json({ stdout, stderr, code: 0 });
   } catch (error) {
-    return Response.json({ 
+    return NextResponse.json({ 
       stdout: error.stdout || '', 
       stderr: error.stderr || error.message, 
       code: error.code || 1 

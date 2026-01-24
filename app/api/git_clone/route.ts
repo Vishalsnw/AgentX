@@ -1,3 +1,6 @@
+import { NextResponse } from 'next/server';
+import path from 'path';
+
 export async function POST(req) {
   try {
     const { repo_url, token } = await req.json();
@@ -13,8 +16,8 @@ export async function POST(req) {
     const execPromise = util.promisify(exec);
     
     await execPromise(`git clone ${url} ${targetPath}`);
-    return Response.json({ status: "success", path: targetPath });
+    return NextResponse.json({ status: "success", path: targetPath });
   } catch (error) {
-    return Response.json({ error: true, message: error.message }, { status: 500 });
+    return NextResponse.json({ error: true, message: error.message }, { status: 500 });
   }
 }
