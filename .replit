@@ -44,3 +44,4 @@ run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 GITHUB_CLIENT_SECRET = "9d890e753b9806d6cc6269016de5a9dc35684a3f"
 GITHUB_CLIENT_ID = "Ov23lipwgA5vPc0x7HbV"
 REDIRECT_URI = "https://agent-x-tawny.vercel.app/api/github/callback"
+DEEPSEEK_API_KEY = "sk-68be7759cb7746dbb0b90edba8e78fe0"
