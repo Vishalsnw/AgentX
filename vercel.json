@@ -1,25 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server/app.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "buildCommand": "cd client && npm install && npm run build && cp -r dist ../",
-        "distDir": "dist"
-      }
-    }
-  ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/server/app.py"
-    },
-    { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
-    { "src": "/(.*)", "dest": "/dist/index.html" }
+    { "src": "/assets/(.*)", "dest": "/client/dist/assets/$1" },
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/client/dist/index.html" }
   ]
 }
