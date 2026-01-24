@@ -18,19 +18,13 @@ export default function TerminalComponent() {
       const { Terminal } = await import('xterm')
       const { FitAddon } = await import('xterm-addon-fit')
       
-      // Using a relative path to node_modules or standard import that might be better handled
-      // Alternatively, we can inject the CSS via a link tag if the module path is problematic
-      try {
-        await import('xterm/css/xterm.css')
-      } catch (e) {
-        console.warn('Failed to import xterm.css directly, injecting via link tag')
-        if (!document.getElementById('xterm-css')) {
-          const link = document.createElement('link')
-          link.id = 'xterm-css'
-          link.rel = 'stylesheet'
-          link.href = 'https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css'
-          document.head.appendChild(link)
-        }
+      // Inject CSS via link tag to avoid build-time module resolution issues with .css files in node_modules
+      if (!document.getElementById('xterm-css')) {
+        const link = document.createElement('link')
+        link.id = 'xterm-css'
+        link.rel = 'stylesheet'
+        link.href = 'https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css'
+        document.head.appendChild(link)
       }
 
       if (!isMounted || !terminalRef.current) return
