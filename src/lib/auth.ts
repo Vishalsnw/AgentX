@@ -6,23 +6,37 @@ export const authOptions: any = {
     GithubProvider({
       clientId: process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET!,
-      authorization: {
-        params: {
-          scope: 'read:user user:email repo',
-        },
-      },
     }),
   ],
   debug: true,
   trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-dev',
+  useSecureCookies: false,
   cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: false
+      }
+    },
     callbackUrl: {
-      name: `__Secure-next-auth.callback-url`,
+      name: `next-auth.callback-url`,
       options: {
         sameSite: 'lax',
         path: '/',
-        secure: true
+        secure: false
+      }
+    },
+    csrfToken: {
+      name: `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: false
       }
     }
   },
@@ -45,13 +59,19 @@ export const authOptions: any = {
     },
   },
   callbacks: {
-    async jwt({ token, account }: any) {
+    async signIn({ user, account, profile }: any) {
+      console.log('SignIn Callback:', { user, account, profile });
+      return true;
+    },
+    async jwt({ token, account, profile }: any) {
+      console.log('JWT Callback:', { hasAccount: !!account, hasProfile: !!profile });
       if (account) {
         token.accessToken = account.access_token
       }
       return token
     },
     async session({ session, token }: any) {
+      console.log('Session Callback:', { hasAccessToken: !!token.accessToken });
       session.accessToken = token.accessToken
       return session
     },
