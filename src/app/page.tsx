@@ -61,8 +61,6 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col bg-editor-bg text-white overflow-hidden">
       <Header 
-        isAuthenticated={isAuthenticated}
-        setIsAuthenticated={setIsAuthenticated}
         onImport={() => setIsImportModalOpen(true)}
         repoName={repoName}
       />

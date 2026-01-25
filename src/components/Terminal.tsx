@@ -156,23 +156,6 @@ export default function TerminalComponent() {
             <ShieldCheck size={14} />
             <span>Auth</span>
           </button>
-          {session ? (
-            <button 
-              onClick={() => signOut({ callbackUrl: 'https://agent-x-tawny.vercel.app' })}
-              className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-all active:scale-95 flex-shrink-0 text-xs px-2 py-1 hover:bg-gray-800 rounded"
-            >
-              <LogOut size={14} />
-              <span>Logout</span>
-            </button>
-          ) : (
-            <button 
-              onClick={() => signIn('github', { callbackUrl: 'https://agent-x-tawny.vercel.app' })}
-              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-all active:scale-95 flex-shrink-0 text-xs px-2 py-1 hover:bg-gray-800 rounded"
-            >
-              <LogIn size={14} />
-              <span>Login</span>
-            </button>
-          )}
         </div>
       </div>
       

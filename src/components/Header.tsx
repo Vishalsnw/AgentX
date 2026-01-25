@@ -1,22 +1,15 @@
 'use client'
 
 import { GitBranch, Github, Upload, Rocket, LogOut, LogIn } from 'lucide-react'
+import { useSession, signIn, signOut } from "next-auth/react"
 
 interface HeaderProps {
-  isAuthenticated: boolean
-  setIsAuthenticated: (value: boolean) => void
   onImport: () => void
   repoName: string
 }
 
-export default function Header({ isAuthenticated, setIsAuthenticated, onImport, repoName }: HeaderProps) {
-  const handleAuth = async () => {
-    if (isAuthenticated) {
-      setIsAuthenticated(false)
-    } else {
-      setIsAuthenticated(true)
-    }
-  }
+export default function Header({ onImport, repoName }: HeaderProps) {
+  const { data: session } = useSession()
 
   return (
     <header className="h-14 bg-sidebar-bg border-b border-gray-700 flex items-center justify-between px-4 sticky top-0 z-50">
@@ -54,23 +47,23 @@ export default function Header({ isAuthenticated, setIsAuthenticated, onImport, 
           <span className="hidden md:inline">Deploy</span>
         </button>
 
-        <button
-          onClick={handleAuth}
-          className="p-2 md:px-3 md:py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-all active:scale-95 border border-gray-700"
-          title={isAuthenticated ? 'Logout' : 'Login with GitHub'}
-        >
-          {isAuthenticated ? (
-            <>
-              <LogOut size={18} className="md:mr-2 inline" />
-              <span className="hidden md:inline">Logout</span>
-            </>
-          ) : (
-            <>
-              <Github size={18} className="md:mr-2 inline" />
-              <span className="hidden md:inline">Login</span>
-            </>
-          )}
-        </button>
+        {session ? (
+          <button
+            onClick={() => signOut({ callbackUrl: 'https://agent-x-tawny.vercel.app' })}
+            className="p-2 md:px-3 md:py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-all active:scale-95 border border-gray-700 flex items-center gap-2"
+          >
+            <LogOut size={18} />
+            <span className="hidden md:inline">Logout</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => signIn('github', { callbackUrl: 'https://agent-x-tawny.vercel.app' })}
+            className="p-2 md:px-3 md:py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-all active:scale-95 border border-gray-700 flex items-center gap-2"
+          >
+            <Github size={18} />
+            <span className="hidden md:inline">Login</span>
+          </button>
+        )}
       </div>
     </header>
   )
