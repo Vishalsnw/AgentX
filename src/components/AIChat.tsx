@@ -84,23 +84,54 @@ export default function AIChat({ messages, setMessages, files, setFiles, selecte
   }
 
   const applyCodeChange = (messageId: string, change: CodeChange) => {
-    if (change.action === 'modify' && change.newContent) {
-      const updatedFiles = updateFileInTree(files, change.filePath, change.newContent)
-      setFiles(updatedFiles)
-      addLog(`Applied changes to ${change.filePath}`)
-
-      setMessages(messages.map(msg => {
-        if (msg.id === messageId && msg.codeChanges) {
-          return {
-            ...msg,
-            codeChanges: msg.codeChanges.map(c => 
-              c.filePath === change.filePath ? { ...c, applied: true } : c
-            ),
-          }
-        }
-        return msg
-      }))
+    let updatedFiles = [...files];
+    
+    if (change.action === 'modify' || change.action === 'create') {
+      const fileExists = findFileInTree(files, change.filePath);
+      
+      if (fileExists) {
+        updatedFiles = updateFileInTree(files, change.filePath, change.newContent || '');
+        addLog(`Modified ${change.filePath}`);
+      } else {
+        const pathParts = change.filePath.split('/');
+        const fileName = pathParts.pop() || change.filePath;
+        
+        const newFile: FileNode = {
+          name: fileName,
+          type: 'file',
+          path: change.filePath,
+          content: change.newContent || ''
+        };
+        
+        updatedFiles = [...files, newFile];
+        addLog(`Created ${change.filePath}`);
+      }
+      
+      setFiles(updatedFiles);
     }
+
+    setMessages(messages.map(msg => {
+      if (msg.id === messageId && msg.codeChanges) {
+        return {
+          ...msg,
+          codeChanges: msg.codeChanges.map(c => 
+            c.filePath === change.filePath ? { ...c, applied: true } : c
+          ),
+        }
+      }
+      return msg
+    }))
+  }
+
+  const findFileInTree = (nodes: FileNode[], path: string): FileNode | null => {
+    for (const node of nodes) {
+      if (node.path === path) return node;
+      if (node.children) {
+        const found = findFileInTree(node.children, path);
+        if (found) return found;
+      }
+    }
+    return null;
   }
 
   const updateFileInTree = (nodes: FileNode[], path: string, content: string): FileNode[] => {
@@ -156,7 +187,9 @@ export default function AIChat({ messages, setMessages, files, setFiles, selecte
                     {message.codeChanges.map((change, idx) => (
                       <div key={idx} className="bg-gray-800 rounded p-2 text-xs">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-gray-400">{change.filePath}</span>
+                          <span className="text-gray-400 truncate max-w-[150px]" title={change.filePath}>
+                            {change.filePath}
+                          </span>
                           {!change.applied ? (
                             <div className="flex gap-1">
                               <button

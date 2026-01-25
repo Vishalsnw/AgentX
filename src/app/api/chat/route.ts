@@ -35,14 +35,15 @@ function buildFileContext(files: FileNode[], currentFile?: string): string {
 function parseCodeChanges(response: string): CodeChange[] {
   const changes: CodeChange[] = []
   
-  const fileBlockRegex = /```(?:[\w]+)?\s*\n\/\/ FILE: ([^\n]+)\n([\s\S]*?)```/g
+  // Support both modify and create actions
+  const fileBlockRegex = /```(?:[\w]+)?\s*\n\/\/ (FILE|CREATE): ([^\n]+)\n([\s\S]*?)```/g
   let match
   
   while ((match = fileBlockRegex.exec(response)) !== null) {
     changes.push({
-      filePath: match[1].trim(),
-      action: 'modify',
-      newContent: match[2].trim(),
+      filePath: match[2].trim(),
+      action: match[1] === 'CREATE' ? 'create' : 'modify',
+      newContent: match[3].trim(),
     })
   }
   
@@ -69,16 +70,18 @@ export async function POST(request: NextRequest) {
 Your task is to help modify, create, or explain code based on user instructions.
 
 IMPORTANT RULES:
-1. Only modify files that are explicitly requested
-2. Do not hallucinate file paths - only reference files that exist
-3. Follow the existing project structure and coding conventions
-4. When providing code changes, use this format:
+1. When creating a NEW file, use this format:
    \`\`\`language
-   // FILE: path/to/file.ext
+   // CREATE: path/to/new/file.ext
    <complete file content>
    \`\`\`
-5. Always explain what changes you're making and why
-6. Be concise but thorough in explanations
+2. When modifying an EXISTING file, use this format:
+   \`\`\`language
+   // FILE: path/to/existing/file.ext
+   <complete file content>
+   \`\`\`
+3. Always explain what you're doing.
+4. If asked to create a whole app, provide all necessary files (code, config, yml for CI/CD, etc.) in the formats above.
 
 Current project context:
 ${fileContext}`
