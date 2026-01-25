@@ -14,16 +14,29 @@ export async function POST(req: NextRequest) {
     
     // We need to find the repository details from the session or environment
     // For now, let's look for any imported repo context
-    const owner = process.env.GITHUB_OWNER || 'vishal-projects'; // Fallback or dynamic
-    const repo = process.env.GITHUB_REPO || 'agent-x'; // Fallback or dynamic
+    const owner = session.user?.name || process.env.GITHUB_OWNER || 'vishal-projects';
+    const repo = 'agent-x'; // This should ideally be passed from frontend
     
-    const githubToken = (session as any).accessToken;
+    console.log(`Attempting push to ${owner}/${repo} on branch main`);
 
     // 1. Get the latest commit SHA of the default branch
     const branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/main`, {
       headers: { 'Authorization': `Bearer ${githubToken}` }
     });
+    
+    if (!branchRes.ok) {
+      const errorMsg = await branchRes.text();
+      console.error('GitHub Branch Error:', errorMsg);
+      return NextResponse.json({ error: `GitHub branch error: ${branchRes.status} ${errorMsg}` }, { status: branchRes.status });
+    }
+
     const branchData = await branchRes.json();
+    
+    if (!branchData.commit || !branchData.commit.commit || !branchData.commit.commit.tree) {
+      console.error('Unexpected GitHub branch response structure:', branchData);
+      return NextResponse.json({ error: "Unexpected GitHub API response structure when reading branch" }, { status: 500 });
+    }
+
     const baseTree = branchData.commit.commit.tree.sha;
     const parentCommit = branchData.commit.sha;
 
