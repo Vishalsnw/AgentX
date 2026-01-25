@@ -187,14 +187,23 @@ export default function AIChat({ messages, setMessages, files, setFiles, selecte
                       ? 'bg-accent text-white' 
                       : 'bg-gray-700'
                   }`}>
-                    <p className="whitespace-pre-wrap">
+                    <div className="whitespace-pre-wrap">
                       {message.role === 'assistant' 
-                        ? message.content.replace(/```[\s\S]*?```/g, (match) => {
-                            const fileNameMatch = match.match(/\/\/ (?:FILE|CREATE): ([^\n]+)/);
-                            return fileNameMatch ? `[File Content: ${fileNameMatch[1]}]` : '[Code Block]';
-                          })
+                        ? message.content.split(/```[\s\S]*?```/).map((text, i) => (
+                            <div key={i}>
+                              {text}
+                              {message.content.match(/```[\s\S]*?```/g)?.[i] && (
+                                <div className="my-2 p-2 bg-gray-800 rounded border border-gray-600 flex items-center justify-between">
+                                  <span className="text-xs text-gray-400 font-mono truncate max-w-[200px]">
+                                    {message.content.match(/```[\s\S]*?```/g)?.[i].match(/\/\/ (?:FILE|CREATE): ([^\n]+)/)?.[1] || 'Code Block'}
+                                  </span>
+                                  <span className="text-[10px] uppercase text-accent font-bold">Ready to Apply</span>
+                                </div>
+                              )}
+                            </div>
+                          ))
                         : message.content}
-                    </p>
+                    </div>
                   </div>
                 
                 {message.codeChanges && message.codeChanges.length > 0 && (
