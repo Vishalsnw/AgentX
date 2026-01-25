@@ -49,11 +49,17 @@ export default function CodeEditor({ file, onChange }: CodeEditorProps) {
   }
 
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="h-9 bg-sidebar-bg border-b border-gray-700 flex items-center px-4">
-        <span className="text-sm text-gray-300">{file.path}</span>
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <div className="h-10 bg-sidebar-bg border-b border-gray-700 flex items-center px-4 justify-between">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <FileCode size={16} className="text-blue-400 flex-shrink-0" />
+          <span className="text-xs text-gray-300 truncate">{file.path}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono">
+          {getLanguage(file.name).toUpperCase()}
+        </div>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 relative overflow-hidden">
         <Editor
           height="100%"
           language={getLanguage(file.name)}

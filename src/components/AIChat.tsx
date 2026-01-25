@@ -116,15 +116,17 @@ export default function AIChat({ messages, setMessages, files, setFiles, selecte
   }
 
   return (
-    <div className="w-80 bg-sidebar-bg border-l border-gray-700 flex flex-col">
-      <div className="p-3 border-b border-gray-700">
+    <div className="w-full md:w-80 bg-sidebar-bg border-l border-gray-700 flex flex-col h-full overflow-hidden">
+      <div className="p-4 border-b border-gray-700 bg-sidebar-bg/95 backdrop-blur-md z-10">
         <div className="flex items-center gap-2">
-          <Bot size={20} className="text-accent" />
-          <span className="font-semibold">AI Assistant</span>
+          <div className="w-8 h-8 bg-accent/20 rounded-lg flex items-center justify-center">
+            <Bot size={20} className="text-accent" />
+          </div>
+          <span className="font-bold text-sm">AI Assistant</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
         {messages.length === 0 ? (
           <div className="text-gray-500 text-sm text-center mt-8">
             <Bot size={32} className="mx-auto mb-3 opacity-50" />

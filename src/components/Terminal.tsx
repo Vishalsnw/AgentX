@@ -134,31 +134,32 @@ export default function TerminalComponent() {
   }
 
   return (
-    <div className="h-48 bg-panel-bg border-t border-gray-700 flex flex-col">
-      <div className="flex items-center justify-between px-4 py-2 bg-sidebar-bg border-b border-gray-700">
-        <div className="flex items-center gap-4 text-sm text-gray-400">
-          <div className="flex items-center gap-2">
+    <div className="flex-1 md:h-48 bg-[#1e1e1e] border-t border-gray-700 flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 bg-sidebar-bg border-b border-gray-700 sticky top-0 z-10">
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
+          <div className="flex items-center gap-2 text-gray-400 flex-shrink-0">
             <TerminalIcon size={16} />
-            <span>Terminal</span>
+            <span className="text-xs font-bold uppercase tracking-widest">Terminal</span>
           </div>
+          <div className="h-4 w-[1px] bg-gray-700 flex-shrink-0" />
           <button 
             onClick={simulatePush}
-            className="flex items-center gap-1 hover:text-white transition-colors"
+            className="flex items-center gap-1 text-gray-400 hover:text-white transition-all active:scale-95 flex-shrink-0 text-xs px-2 py-1 hover:bg-gray-800 rounded"
           >
             <Send size={14} />
-            <span>Push Code</span>
+            <span>Push</span>
           </button>
           <button 
             onClick={simulateAuth}
-            className="flex items-center gap-1 hover:text-white transition-colors"
+            className="flex items-center gap-1 text-gray-400 hover:text-white transition-all active:scale-95 flex-shrink-0 text-xs px-2 py-1 hover:bg-gray-800 rounded"
           >
             <ShieldCheck size={14} />
-            <span>Git Auth</span>
+            <span>Auth</span>
           </button>
           {session ? (
             <button 
               onClick={() => signOut()}
-              className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors"
+              className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-all active:scale-95 flex-shrink-0 text-xs px-2 py-1 hover:bg-gray-800 rounded"
             >
               <LogOut size={14} />
               <span>Logout</span>
@@ -166,10 +167,10 @@ export default function TerminalComponent() {
           ) : (
             <button 
               onClick={() => signIn('github')}
-              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-all active:scale-95 flex-shrink-0 text-xs px-2 py-1 hover:bg-gray-800 rounded"
             >
               <LogIn size={14} />
-              <span>Login with GitHub</span>
+              <span>Login</span>
             </button>
           )}
         </div>

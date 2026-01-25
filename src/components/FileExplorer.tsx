@@ -95,27 +95,30 @@ function TreeNode({ node, onFileSelect, selectedPath, depth }: TreeNodeProps) {
 
 export default function FileExplorer({ files, onFileSelect, selectedPath }: FileExplorerProps) {
   return (
-    <div className="w-64 bg-sidebar-bg border-r border-gray-700 overflow-y-auto">
-      <div className="p-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+    <div className="w-full md:w-64 bg-sidebar-bg border-r border-gray-700 overflow-y-auto h-full flex flex-col">
+      <div className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-gray-800">
         Explorer
       </div>
-      {files.length === 0 ? (
-        <div className="p-4 text-gray-500 text-sm text-center">
-          No files loaded.
-          <br />
-          Import a repository to get started.
-        </div>
-      ) : (
-        files.map((file) => (
-          <TreeNode
-            key={file.path}
-            node={file}
-            onFileSelect={onFileSelect}
-            selectedPath={selectedPath}
-            depth={0}
-          />
-        ))
-      )}
+      <div className="flex-1 overflow-y-auto py-2">
+        {files.length === 0 ? (
+          <div className="p-8 text-gray-500 text-sm text-center flex flex-col items-center gap-4">
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center">
+              <Folder size={32} className="opacity-20" />
+            </div>
+            <p>No files loaded.<br />Import a repository to get started.</p>
+          </div>
+        ) : (
+          files.map((file) => (
+            <TreeNode
+              key={file.path}
+              node={file}
+              onFileSelect={onFileSelect}
+              selectedPath={selectedPath}
+              depth={0}
+            />
+          ))
+        )}
+      </div>
     </div>
   )
 }
