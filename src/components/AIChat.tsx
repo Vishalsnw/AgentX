@@ -111,7 +111,10 @@ export default function AIChat({ messages, setMessages, files, setFiles, selecte
       
       // Trigger auto-push if terminal exists
       window.dispatchEvent(new CustomEvent('ai:push', { 
-        detail: { message: `AI: ${change.action === 'create' ? 'Created' : 'Modified'} ${change.filePath}` } 
+        detail: { 
+          message: `AI: ${change.action === 'create' ? 'Created' : 'Modified'} ${change.filePath}`,
+          files: updatedFiles 
+        } 
       }));
     }
 
@@ -179,13 +182,20 @@ export default function AIChat({ messages, setMessages, files, setFiles, selecte
               )}
               
               <div className={`max-w-[85%] ${message.role === 'user' ? 'order-first' : ''}`}>
-                <div className={`rounded-lg p-3 text-sm ${
-                  message.role === 'user' 
-                    ? 'bg-accent text-white' 
-                    : 'bg-gray-700'
-                }`}>
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                </div>
+                  <div className={`rounded-lg p-3 text-sm ${
+                    message.role === 'user' 
+                      ? 'bg-accent text-white' 
+                      : 'bg-gray-700'
+                  }`}>
+                    <p className="whitespace-pre-wrap">
+                      {message.role === 'assistant' 
+                        ? message.content.replace(/```[\s\S]*?```/g, (match) => {
+                            const fileNameMatch = match.match(/\/\/ (?:FILE|CREATE): ([^\n]+)/);
+                            return fileNameMatch ? `[File Content: ${fileNameMatch[1]}]` : '[Code Block]';
+                          })
+                        : message.content}
+                    </p>
+                  </div>
                 
                 {message.codeChanges && message.codeChanges.length > 0 && (
                   <div className="mt-2 space-y-2">

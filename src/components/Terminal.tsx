@@ -10,17 +10,33 @@ export default function TerminalComponent() {
   const xtermRef = useRef<any>(null)
 
   useEffect(() => {
-    const handlePush = (e: any) => {
+    const handlePush = async (e: any) => {
       if (xtermRef.current) {
-        xtermRef.current.write('\r\n\x1b[33m[AI Auto-Push]\x1b[0m Starting git synchronization...\r\n');
-        xtermRef.current.write(`\x1b[32m$ git add .\x1b[0m\r\n`);
-        xtermRef.current.write(`\x1b[32m$ git commit -m "${e.detail.message}"\x1b[0m\r\n`);
-        xtermRef.current.write(`\x1b[32m$ git push origin main\x1b[0m\r\n`);
+        xtermRef.current.write('\r\n\x1b[33m[AI Auto-Push]\x1b[0m Starting real GitHub synchronization...\r\n');
         
-        setTimeout(() => {
-          xtermRef.current?.write('\x1b[32m✓ Changes successfully pushed to GitHub\x1b[0m\r\n');
-          xtermRef.current?.write('\x1b[34mrepx2@agent:~/workspace$\x1b[0m ');
-        }, 1500);
+        try {
+          const response = await fetch('/api/github/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              message: e.detail.message,
+              files: e.detail.files // Pass the updated files
+            })
+          });
+
+          const data = await response.json();
+          
+          if (data.success) {
+            xtermRef.current.write('\x1b[32m✓ Changes successfully pushed to GitHub\x1b[0m\r\n');
+            xtermRef.current.write(`\x1b[90mCommit: ${data.sha.substring(0, 7)}\x1b[0m\r\n`);
+          } else {
+            throw new Error(data.error || 'Push failed');
+          }
+        } catch (err: any) {
+          xtermRef.current.write(`\x1b[31m✗ GitHub Push Failed: ${err.message}\x1b[0m\r\n`);
+        }
+        
+        xtermRef.current.write('\x1b[34mrepx2@agent:~/workspace$\x1b[0m ');
       }
     };
 
