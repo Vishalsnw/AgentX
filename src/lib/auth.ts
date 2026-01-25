@@ -6,6 +6,11 @@ export const authOptions: any = {
     GithubProvider({
       clientId: process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET!,
+      authorization: {
+        params: {
+          scope: 'read:user user:email repo',
+        },
+      },
     }),
   ],
   debug: true,
@@ -39,28 +44,6 @@ export const authOptions: any = {
         secure: process.env.NODE_ENV === 'production'
       }
     }
-  },
-  pages: {
-    signIn: '/api/auth/signin',
-    error: '/api/auth/error',
-  },
-  logger: {
-    error(code: string, metadata: any) {
-      console.error('NextAuth Error:', { code, metadata, 
-        env: {
-          NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-          GITHUB_CLIENT_ID: !!(process.env.GITHUB_CLIENT_ID || process.env.GITHUB_ID),
-          GITHUB_CLIENT_SECRET: !!(process.env.GITHUB_CLIENT_SECRET || process.env.GITHUB_SECRET),
-          NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET
-        }
-      })
-    },
-    warn(code: string) {
-      console.warn('NextAuth Warning:', code)
-    },
-    debug(code: string, metadata: any) {
-      console.log('NextAuth Debug:', { code, metadata })
-    },
   },
   callbacks: {
     async signIn({ user, account, profile }: any) {
