@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { Terminal as TerminalIcon, ShieldCheck, Send } from 'lucide-react'
+import { Terminal as TerminalIcon, ShieldCheck, Send, LogIn, LogOut } from 'lucide-react'
+import { useSession, signIn, signOut } from "next-auth/react"
 
 export default function TerminalComponent() {
+  const { data: session } = useSession()
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<any>(null)
 
@@ -45,6 +47,9 @@ export default function TerminalComponent() {
       fitAddon.fit()
 
       term.writeln('\x1b[1;32mWelcome to AI Code Platform Terminal\x1b[0m')
+      if (session) {
+        term.writeln(`Logged in as \x1b[1;34m${session.user?.name || session.user?.email}\x1b[0m`)
+      }
       term.writeln('Type \x1b[1;34m"push"\x1b[0m to simulate code push or \x1b[1;34m"auth"\x1b[0m for git authentication.')
       term.write('\n\r$ ')
 
@@ -150,6 +155,23 @@ export default function TerminalComponent() {
             <ShieldCheck size={14} />
             <span>Git Auth</span>
           </button>
+          {session ? (
+            <button 
+              onClick={() => signOut()}
+              className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors"
+            >
+              <LogOut size={14} />
+              <span>Logout</span>
+            </button>
+          ) : (
+            <button 
+              onClick={() => signIn('github')}
+              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              <LogIn size={14} />
+              <span>Login with GitHub</span>
+            </button>
+          )}
         </div>
       </div>
       
