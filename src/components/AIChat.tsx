@@ -108,6 +108,11 @@ export default function AIChat({ messages, setMessages, files, setFiles, selecte
       }
       
       setFiles(updatedFiles);
+      
+      // Trigger auto-push if terminal exists
+      window.dispatchEvent(new CustomEvent('ai:push', { 
+        detail: { message: `AI: ${change.action === 'create' ? 'Created' : 'Modified'} ${change.filePath}` } 
+      }));
     }
 
     setMessages(messages.map(msg => {

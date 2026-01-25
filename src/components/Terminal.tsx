@@ -10,6 +10,25 @@ export default function TerminalComponent() {
   const xtermRef = useRef<any>(null)
 
   useEffect(() => {
+    const handlePush = (e: any) => {
+      if (xtermRef.current) {
+        xtermRef.current.write('\r\n\x1b[33m[AI Auto-Push]\x1b[0m Starting git synchronization...\r\n');
+        xtermRef.current.write(`\x1b[32m$ git add .\x1b[0m\r\n`);
+        xtermRef.current.write(`\x1b[32m$ git commit -m "${e.detail.message}"\x1b[0m\r\n`);
+        xtermRef.current.write(`\x1b[32m$ git push origin main\x1b[0m\r\n`);
+        
+        setTimeout(() => {
+          xtermRef.current?.write('\x1b[32m✓ Changes successfully pushed to GitHub\x1b[0m\r\n');
+          xtermRef.current?.write('\x1b[34mrepx2@agent:~/workspace$\x1b[0m ');
+        }, 1500);
+      }
+    };
+
+    window.addEventListener('ai:push', handlePush);
+    return () => window.removeEventListener('ai:push', handlePush);
+  }, []);
+
+  useEffect(() => {
     // Only run on client
     if (typeof window === 'undefined' || !terminalRef.current) return
 
