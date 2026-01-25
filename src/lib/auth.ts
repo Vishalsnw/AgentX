@@ -20,14 +20,18 @@ export const authOptions: any = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, account }: any) {
+    async jwt({ token, account, profile }: any) {
       if (account) {
         token.accessToken = account.access_token;
+        token.githubUsername = (profile as any)?.login;
       }
       return token;
     },
     async session({ session, token }: any) {
-      session.accessToken = token.accessToken;
+      (session as any).accessToken = token.accessToken;
+      if (session.user) {
+        (session.user as any).githubUsername = token.githubUsername;
+      }
       return session;
     },
   },

@@ -12,16 +12,22 @@ export async function POST(req: NextRequest) {
   try {
     const { message, files } = await req.json();
     
-    // We need to find the repository details from the session or environment
-    // For now, let's look for any imported repo context
-    const owner = session.user?.name || process.env.GITHUB_OWNER || 'vishal-projects';
-    const repo = 'agent-x'; // This should ideally be passed from frontend
+    const githubToken = (session as any).accessToken;
+    const owner = (session.user as any)?.githubUsername || session.user?.name?.split(' ').join('-').toLowerCase() || process.env.GITHUB_OWNER || 'vishal-projects';
+    const repo = 'agent-x'; 
     
-    console.log(`Attempting push to ${owner}/${repo} on branch main`);
+    console.log(`Push attempt details: Owner=${owner}, Repo=${repo}, TokenExists=${!!githubToken}`);
+
+    if (!githubToken) {
+      return NextResponse.json({ error: "No GitHub token found in session" }, { status: 401 });
+    }
 
     // 1. Get the latest commit SHA of the default branch
     const branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/main`, {
-      headers: { 'Authorization': `Bearer ${githubToken}` }
+      headers: { 
+        'Authorization': `Bearer ${githubToken}`,
+        'Accept': 'application/vnd.github.v3+json'
+      }
     });
     
     if (!branchRes.ok) {
@@ -95,16 +101,23 @@ export async function POST(req: NextRequest) {
     const commitData = await commitRes.json();
 
     // 5. Update the reference
-    await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`, {
+    const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`, {
       method: 'PATCH',
       headers: { 
         'Authorization': `Bearer ${githubToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        sha: commitData.sha
+        sha: commitData.sha,
+        force: true
       })
     });
+
+    if (!refRes.ok) {
+      const errorMsg = await refRes.text();
+      console.error('GitHub Ref Update Error:', errorMsg);
+      return NextResponse.json({ error: `GitHub ref update error: ${refRes.status} ${errorMsg}` }, { status: refRes.status });
+    }
 
     return NextResponse.json({ 
       success: true, 
