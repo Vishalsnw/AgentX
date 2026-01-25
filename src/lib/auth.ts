@@ -13,6 +13,9 @@ export const authOptions: any = {
       },
     }),
   ],
+  debug: true,
+  trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, account }: any) {
       if (account) {
@@ -25,7 +28,6 @@ export const authOptions: any = {
       return session
     },
   },
-  secret: process.env.NEXTAUTH_SECRET,
 }
 
 const handler = NextAuth(authOptions)
