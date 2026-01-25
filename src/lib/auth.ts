@@ -14,31 +14,35 @@ export const authOptions: any = {
   useSecureCookies: process.env.NODE_ENV === 'production',
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: process.env.NODE_ENV === 'production' ? `__Secure-next-auth.session-token` : `next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false
+        secure: process.env.NODE_ENV === 'production'
       }
     },
     callbackUrl: {
-      name: `next-auth.callback-url`,
+      name: process.env.NODE_ENV === 'production' ? `__Secure-next-auth.callback-url` : `next-auth.callback-url`,
       options: {
         sameSite: 'lax',
         path: '/',
-        secure: false
+        secure: process.env.NODE_ENV === 'production'
       }
     },
     csrfToken: {
-      name: `next-auth.csrf-token`,
+      name: process.env.NODE_ENV === 'production' ? `__Host-next-auth.csrf-token` : `next-auth.csrf-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: false
+        secure: process.env.NODE_ENV === 'production'
       }
     }
+  },
+  pages: {
+    signIn: '/api/auth/signin',
+    error: '/api/auth/error',
   },
   logger: {
     error(code: string, metadata: any) {
@@ -60,20 +64,22 @@ export const authOptions: any = {
   },
   callbacks: {
     async signIn({ user, account, profile }: any) {
-      console.log('SignIn Callback:', { user, account, profile });
+      console.log('SignIn Callback:', { 
+        id: user?.id, 
+        email: user?.email, 
+        provider: account?.provider 
+      });
       return true;
     },
-    async jwt({ token, account, profile }: any) {
-      console.log('JWT Callback:', { hasAccount: !!account, hasProfile: !!profile });
+    async jwt({ token, account }: any) {
       if (account) {
-        token.accessToken = account.access_token
+        token.accessToken = account.access_token;
       }
-      return token
+      return token;
     },
     async session({ session, token }: any) {
-      console.log('Session Callback:', { hasAccessToken: !!token.accessToken });
-      session.accessToken = token.accessToken
-      return session
+      session.accessToken = token.accessToken;
+      return session;
     },
   },
 }
