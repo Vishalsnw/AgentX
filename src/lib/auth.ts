@@ -10,8 +10,8 @@ export const authOptions: any = {
   ],
   debug: true,
   trustHost: true,
-  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-dev',
-  useSecureCookies: false,
+  secret: process.env.NEXTAUTH_SECRET || process.env.NEXT_PUBLIC_NEXTAUTH_SECRET || 'fallback-secret-for-dev-only-not-prod',
+  useSecureCookies: process.env.NODE_ENV === 'production',
   cookies: {
     sessionToken: {
       name: `next-auth.session-token`,
