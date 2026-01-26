@@ -23,17 +23,29 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Get the latest commit SHA of the default branch
-    const branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/main`, {
+    // Check 'main' first, fallback to 'master' if 404
+    let branchName = 'main';
+    let branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branchName}`, {
       headers: { 
         'Authorization': `Bearer ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     });
+
+    if (branchRes.status === 404) {
+      branchName = 'master';
+      branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branchName}`, {
+        headers: { 
+          'Authorization': `Bearer ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+    }
     
     if (!branchRes.ok) {
       const errorMsg = await branchRes.text();
-      console.error('GitHub Branch Error:', errorMsg);
-      return NextResponse.json({ error: `GitHub branch error: ${branchRes.status} ${errorMsg}` }, { status: branchRes.status });
+      console.error(`GitHub Branch Error (${branchName}):`, errorMsg);
+      return NextResponse.json({ error: `GitHub branch error (${branchName}): ${branchRes.status} ${errorMsg}` }, { status: branchRes.status });
     }
 
     const branchData = await branchRes.json();
@@ -101,7 +113,7 @@ export async function POST(req: NextRequest) {
     const commitData = await commitRes.json();
 
     // 5. Update the reference
-    const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/main`, {
+    const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branchName}`, {
       method: 'PATCH',
       headers: { 
         'Authorization': `Bearer ${githubToken}`,
