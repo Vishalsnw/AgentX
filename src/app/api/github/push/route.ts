@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const { message, files } = await req.json();
     
     const githubToken = (session as any).accessToken;
-    const owner = (session.user as any)?.githubUsername || session.user?.name?.split(' ').join('-').toLowerCase() || process.env.GITHUB_OWNER || 'vishal-projects';
+    const owner = (session as any).user?.githubUsername || (session as any).user?.name?.split(' ').join('-').toLowerCase() || process.env.GITHUB_OWNER || 'vishal-projects';
     const repo = 'agent-x'; 
     
     console.log(`Push attempt details: Owner=${owner}, Repo=${repo}, TokenExists=${!!githubToken}`);
