@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const { message, files } = await req.json();
     
     const githubToken = (session as any).accessToken;
-    const owner = (session as any).user?.githubUsername || (session as any).user?.name?.split(' ').join('-').toLowerCase() || process.env.GITHUB_OWNER || 'vishal-projects';
+    const owner = (session as any).user?.githubUsername || 'vishal-projects';
     const repo = 'agent-x'; 
     const branchName = 'main';
     
