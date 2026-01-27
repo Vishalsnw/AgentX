@@ -15,33 +15,15 @@ export async function POST(req: NextRequest) {
     const githubToken = (session as any).accessToken;
     const owner = (session as any).user?.githubUsername || (session as any).user?.name?.split(' ').join('-').toLowerCase() || process.env.GITHUB_OWNER || 'vishal-projects';
     const repo = 'agent-x'; 
+    const branchName = 'main';
     
-    console.log(`Push attempt details: Owner=${owner}, Repo=${repo}, TokenExists=${!!githubToken}`);
+    console.log(`Push attempt details: Owner=${owner}, Repo=${repo}, Branch=${branchName}, TokenExists=${!!githubToken}`);
 
     if (!githubToken) {
       return NextResponse.json({ error: "No GitHub token found in session" }, { status: 401 });
     }
 
-    // 1. Get repository info to find the default branch
-    const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-      headers: { 
-        'Authorization': `Bearer ${githubToken}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    });
-
-    if (!repoRes.ok) {
-      const errorMsg = await repoRes.text();
-      console.error(`GitHub Repo Error:`, errorMsg);
-      return NextResponse.json({ error: `GitHub repo error: ${repoRes.status} ${errorMsg}` }, { status: repoRes.status });
-    }
-
-    const repoData = await repoRes.json();
-    const branchName = repoData.default_branch || 'main';
-    
-    console.log(`Detected default branch: ${branchName}`);
-
-    // 2. Get the latest commit SHA of the detected branch
+    // 1. Get the latest commit SHA of the specified branch
     const branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branchName}`, {
       headers: { 
         'Authorization': `Bearer ${githubToken}`,
