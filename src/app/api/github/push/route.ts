@@ -13,17 +13,20 @@ export async function POST(req: NextRequest) {
     const { message, files } = await req.json();
     
     const githubToken = process.env.GITHUB_PERSONAL_ACCESS_TOKEN || (session as any).accessToken;
-    const owner = (session as any).user?.githubUsername || 'vishal-projects';
+    // Hardcode owner and repo to match your current environment
+    const owner = 'vishal-projects';
     const repo = 'agent-x'; 
     
     if (!githubToken) {
       return NextResponse.json({ error: "No GitHub token found (check GITHUB_PERSONAL_ACCESS_TOKEN secret)" }, { status: 401 });
     }
 
+    console.log(`Push attempt details: Owner=${owner}, Repo=${repo}, TokenSource=${process.env.GITHUB_PERSONAL_ACCESS_TOKEN ? 'Secret' : 'Session'}`);
+
     // 1. Get repository info to find the default branch
     const repoRes = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
       headers: { 
-        'Authorization': `Bearer ${githubToken}`,
+        'Authorization': `token ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     });
@@ -37,12 +40,12 @@ export async function POST(req: NextRequest) {
     const repoData = await repoRes.json();
     const branchName = repoData.default_branch || 'main';
     
-    console.log(`Push attempt details: Owner=${owner}, Repo=${repo}, Branch=${branchName}, TokenSource=${process.env.GITHUB_PERSONAL_ACCESS_TOKEN ? 'Secret' : 'Session'}`);
+    console.log(`Detected default branch: ${branchName}`);
 
     // 2. Get the latest commit SHA of the detected branch
     const branchRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/branches/${branchName}`, {
       headers: { 
-        'Authorization': `Bearer ${githubToken}`,
+        'Authorization': `token ${githubToken}`,
         'Accept': 'application/vnd.github.v3+json'
       }
     });
@@ -70,7 +73,7 @@ export async function POST(req: NextRequest) {
         const blobRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/blobs`, {
           method: 'POST',
           headers: { 
-            'Authorization': `Bearer ${githubToken}`,
+            'Authorization': `token ${githubToken}`,
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
     const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees`, {
       method: 'POST',
       headers: { 
-        'Authorization': `Bearer ${githubToken}`,
+        'Authorization': `token ${githubToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -106,7 +109,7 @@ export async function POST(req: NextRequest) {
     const commitRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/commits`, {
       method: 'POST',
       headers: { 
-        'Authorization': `Bearer ${githubToken}`,
+        'Authorization': `token ${githubToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -121,7 +124,7 @@ export async function POST(req: NextRequest) {
     const refRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/refs/heads/${branchName}`, {
       method: 'PATCH',
       headers: { 
-        'Authorization': `Bearer ${githubToken}`,
+        'Authorization': `token ${githubToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
